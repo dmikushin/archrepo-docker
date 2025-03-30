@@ -11,64 +11,15 @@ import sys
 import tempfile
 from typing import List, Dict, Optional, Tuple, Union
 
-
 class ArchRepoClient:
-    """
-    Client for interacting with an Arch Linux package repository via SSH.
-    """
-
-    def __init__(
-        self,
-        host: str = "localhost",
-        port: str = "2222",
-        user: str = "pkguser",
-        key_path: str = "./ssh-keys/id_ed25519"
-    ):
+    def __init__(self, host: str):
         """
         Initialize a new ArchRepoClient instance.
 
         Args:
-            host: SSH host (default: localhost)
-            port: SSH port (default: 2222)
-            user: SSH username (default: pkguser)
-            key_path: Path to SSH private key (default: ./ssh-keys/id_ed25519)
+            host: SSH host
         """
         self.host = host
-        self.port = port
-        self.user = user
-        self.key_path = os.path.expanduser(key_path)
-
-        # Validate SSH key exists
-        if not os.path.isfile(self.key_path):
-            raise FileNotFoundError(f"SSH key not found: {self.key_path}")
-
-    def _run_ssh_command(self, command: str) -> Tuple[int, str, str]:
-        """
-        Run a command via SSH.
-
-        Args:
-            command: Command to run
-
-        Returns:
-            Tuple of (return_code, stdout, stderr)
-        """
-        ssh_args = [
-            "ssh",
-            "-i", self.key_path,
-            "-p", self.port,
-            f"{self.user}@{self.host}",
-            command
-        ]
-
-        process = subprocess.Popen(
-            ssh_args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True
-        )
-
-        stdout, stderr = process.communicate()
-        return process.returncode, stdout, stderr
 
     def _create_script(self, commands: List[str]) -> str:
         """
@@ -101,9 +52,7 @@ class ArchRepoClient:
         """
         ssh_args = [
             "ssh",
-            "-i", self.key_path,
-            "-p", self.port,
-            f"{self.user}@{self.host}"
+            self.host
         ]
 
         with open(script_path, 'r') as script_file:
@@ -390,21 +339,7 @@ def main():
     """
     parser = argparse.ArgumentParser(description="ArchRepo Client API")
 
-    parser.add_argument("-H", "--host",
-                        default=os.environ.get("SSH_HOST", "localhost"),
-                        help="SSH host (default: localhost or SSH_HOST env var)")
-
-    parser.add_argument("-p", "--port",
-                        default=os.environ.get("SSH_PORT", "2222"),
-                        help="SSH port (default: 2222 or SSH_PORT env var)")
-
-    parser.add_argument("-k", "--key",
-                        default=os.environ.get("SSH_KEY", "./ssh-keys/id_ed25519"),
-                        help="SSH key file (default: ./ssh-keys/id_ed25519 or SSH_KEY env var)")
-
-    parser.add_argument("-u", "--user",
-                        default=os.environ.get("SSH_USER", "pkguser"),
-                        help="SSH username (default: pkguser or SSH_USER env var)")
+    parser.add_argument("-H", "--host", help="SSH host as specified in ~/.ssh/config")
 
     # Create subparsers for different commands
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
@@ -445,12 +380,7 @@ def main():
 
     try:
         # Create client instance
-        client = ArchRepoClient(
-            host=args.host,
-            port=args.port,
-            user=args.user,
-            key_path=args.key
-        )
+        client = ArchRepoClient(host=args.host)
 
         # Execute requested command
         if args.command == "upload":

@@ -1,6 +1,7 @@
 # archrepo-docker: ArchLinux Package Repository Container
 
-Set up, use, and manage your custom ArchLinux package repository using a specialized SSH interface.
+Setup your custom ArchLinux package repository and manage it using a Python API.
+
 
 ## Setting Up the Repository
 
@@ -32,13 +33,24 @@ sudo pacman -Sy
 ```
 
 
-## Package Management via SSH Interface
+## Package Management via Python API
 
-Instead of a general-purpose shell, this container provides a specialized repository management interface when you connect via SSH.
+A Python API is used to provide a secure server connection to manage your package repository.
 
-### SSH Access
+### Installation
 
-The first time you run the container, it will generate an SSH key pair in the `./ssh-keys` directory. You should use this key to authenticate with the server.
+```bash
+# Clone the repository 
+git clone https://github.com/yourusername/archrepo-api.git
+cd archrepo-api
+
+# Install dependencies (minimal dependencies required)
+pip install -r requirements.txt
+```
+
+### SSH Key Setup
+
+The first time you run the container, it will generate an SSH key pair in the `./ssh-keys` directory. You should use this key for authentication.
 
 1. Add the generated SSH key to your SSH configuration:
 
@@ -46,31 +58,72 @@ The first time you run the container, it will generate an SSH key pair in the `.
    ssh-add ./ssh-keys/id_ed25519
    ```
 
-2. Connect to the repository management shell:
+2. Make sure the key has the correct permissions:
 
    ```bash
-   ssh -i ./ssh-keys/id_ed25519 -p 2222 pkguser@your-server-ip
+   chmod 600 ./ssh-keys/id_ed25519
    ```
 
-### Available Commands
+### Command-line Usage
 
-The SSH interface provides the following commands:
+The module can be used as a command-line tool:
 
-- `add <package-file.pkg.tar.zst>` - Add a package to the repository
-- `remove <package-name>` - Remove a package from the repository
-- `list` - List all packages in the repository
-- `clean` - Clean up old package versions
-- `receive <filename>` - Receive a package file through the SSH connection
-- `send <filename>` - Send a file from the repository to the client
-- `status` - Show repository statistics
-- `help` - Show help menu
-- `exit` - Log out
+```bash
+# Upload a package
+python3 archrepo.py upload mypackage-1.0-1-x86_64.pkg.tar.zst --add
 
-### Uploading Packages
+# Add a previously uploaded package to the repository
+python3 archrepo.py add /home/pkguser/uploads/mypackage-1.0-1-x86_64.pkg.tar.zst
 
-There are two ways to upload packages:
+# Remove a package from the repository
+python3 archrepo.py remove mypackage
 
-#### Method 1: Using the integrated file transfer
+# List all packages in the repository
+python3 archrepo.py list
+
+# Clean up old package versions
+python3 archrepo.py clean
+
+# Check repository status
+python3 archrepo.py status
+
+# Download a package from the repository
+python3 archrepo.py download mypackage-1.0-1-x86_64.pkg.tar.zst -o ./downloaded.pkg.tar.zst
+```
+
+### Python API Usage
+
+You can use the API programmatically in your own Python code:
+
+```python
+from archrepo import ArchRepoClient
+
+# Initialize the client
+client = ArchRepoClient(
+    host="your-server-ip",
+    port="2222",
+    user="pkguser",
+    key_path="./ssh-keys/id_ed25519"
+)
+
+# Upload a package and add it to the repository
+success, message = client.upload_package("mypackage-1.0-1-x86_64.pkg.tar.zst", add_to_repo=True)
+print(message)  # "Package uploaded and added to repository successfully."
+
+# List all packages
+success, packages = client.list_packages()
+if success:
+    for pkg in packages:
+        print(f"{pkg['name']} {pkg['version']} - {pkg['description']}")
+
+# Get repository status
+success, status = client.get_status()
+if success:
+    print(f"Total packages: {status.get('Total packages', 'Unknown')}")
+    print(f"Repository size: {status.get('Repository size', 'Unknown')}")
+```
+
+### Building and Uploading Packages
 
 1. Build your package using makepkg as usual:
    ```bash
@@ -79,42 +132,38 @@ There are two ways to upload packages:
    makepkg -s
    ```
 
-2. SSH into the repository:
+2. Upload and add the package to your repository:
    ```bash
-   ssh -i ./ssh-keys/id_ed25519 -p 2222 pkguser@your-server-ip
+   python3 archrepo.py upload ./your-package-1.0-1-x86_64.pkg.tar.zst --add
    ```
 
-3. Use the `receive` command to upload your package:
-   ```
-   pkgrepo> receive your-package-1.0-1-x86_64.pkg.tar.zst
-   ```
+### Available API Methods
 
-4. When prompted, paste the base64-encoded content of your package file. You can create this with:
-   ```bash
-   base64 your-package-1.0-1-x86_64.pkg.tar.zst
-   ```
+The Python API provides the following functionality:
 
-5. After pasting the content, type `EOF` on a new line to complete the transfer.
+- **upload_package(package_path, add_to_repo=False)** - Upload a package to the repository
+- **add_package(package_name)** - Add a previously uploaded package to the repository
+- **remove_package(package_name)** - Remove a package from the repository
+- **list_packages()** - List all packages in the repository
+- **clean_repository()** - Clean up old package versions
+- **get_status()** - Show repository statistics
+- **download_package(package_name, output_path=None)** - Download a package from the repository
 
-6. Add the package to the repository:
-   ```
-   pkgrepo> add /home/pkguser/uploads/your-package-1.0-1-x86_64.pkg.tar.zst
-   pkgrepo> exit
-   ```
+### Environment Variables
 
-#### Method 2: Using SCP (separate from the shell)
+You can configure the connection details using environment variables:
 
-1. Upload your package using `scp`:
-   ```bash
-   scp -P 2222 your-package-1.0-1-x86_64.pkg.tar.zst pkguser@your-server-ip:~/uploads/
-   ```
+- `SSH_HOST`: SSH host (default: localhost)
+- `SSH_PORT`: SSH port (default: 2222)
+- `SSH_USER`: SSH username (default: pkguser)
+- `SSH_KEY`: Path to SSH key file (default: ./ssh-keys/id_ed25519)
 
-2. SSH into the repository and add the package to the database:
-   ```bash
-   ssh -i ./ssh-keys/id_ed25519 -p 2222 pkguser@your-server-ip
-   pkgrepo> add /home/pkguser/uploads/your-package-1.0-1-x86_64.pkg.tar.zst
-   pkgrepo> exit
-   ```
+Example:
+```bash
+export SSH_HOST=my-repo-server.example.com
+export SSH_KEY=~/.ssh/repo_key
+python3 archrepo.py list
+```
 
 
 ## Security Considerations

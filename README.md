@@ -1,6 +1,6 @@
 # archrepo-docker: ArchLinux Package Repository Container
 
-Set up, use, and manage your custom ArchLinux package repository.
+Set up, use, and manage your custom ArchLinux package repository using a specialized SSH interface.
 
 ## Setting Up the Repository
 
@@ -32,20 +32,11 @@ sudo pacman -Sy
 ```
 
 
-## Uploading Packages
+## Package Management via SSH Interface
 
-### Building a Package
+Instead of a general-purpose shell, this container provides a specialized repository management interface when you connect via SSH.
 
-1. Create a basic package:
-   ```bash
-   git clone https://aur.archlinux.org/package-name.git
-   cd package-name
-   makepkg -s
-   ```
-
-2. This will create a `.pkg.tar.zst` file.
-
-### Uploading via SSH
+### SSH Access
 
 The first time you run the container, it will generate an SSH key pair in the `./ssh-keys` directory. You should use this key to authenticate with the server.
 
@@ -55,28 +46,75 @@ The first time you run the container, it will generate an SSH key pair in the `.
    ssh-add ./ssh-keys/id_ed25519
    ```
 
-2. Upload your package using `scp`:
+2. Connect to the repository management shell:
 
    ```bash
-   scp -P 2222 your-package-1.0-1-x86_64.pkg.tar.zst pkguser@your-server-ip:/srv/repo/x86_64/
+   ssh -i ./ssh-keys/id_ed25519 -p 2222 pkguser@your-server-ip
    ```
 
-3. If you're using this system on a different machine, copy the public key to your local machine:
+### Available Commands
 
+The SSH interface provides the following commands:
+
+- `add <package-file.pkg.tar.zst>` - Add a package to the repository
+- `remove <package-name>` - Remove a package from the repository
+- `list` - List all packages in the repository
+- `clean` - Clean up old package versions
+- `receive <filename>` - Receive a package file through the SSH connection
+- `send <filename>` - Send a file from the repository to the client
+- `status` - Show repository statistics
+- `help` - Show help menu
+- `exit` - Log out
+
+### Uploading Packages
+
+There are two ways to upload packages:
+
+#### Method 1: Using the integrated file transfer
+
+1. Build your package using makepkg as usual:
    ```bash
-   cat ./ssh-keys/id_ed25519.pub >> ~/.ssh/authorized_keys
+   git clone https://aur.archlinux.org/package-name.git
+   cd package-name
+   makepkg -s
    ```
 
-### Updating the Repository Database
+2. SSH into the repository:
+   ```bash
+   ssh -i ./ssh-keys/id_ed25519 -p 2222 pkguser@your-server-ip
+   ```
 
-After uploading, SSH into the repository to update the database:
+3. Use the `receive` command to upload your package:
+   ```
+   pkgrepo> receive your-package-1.0-1-x86_64.pkg.tar.zst
+   ```
 
-```bash
-ssh -i ./ssh-keys/id_ed25519 -p 2222 pkguser@your-server-ip
-cd /srv/repo/x86_64
-repo-add repo.db.tar.gz *.pkg.tar.zst
-exit
-```
+4. When prompted, paste the base64-encoded content of your package file. You can create this with:
+   ```bash
+   base64 your-package-1.0-1-x86_64.pkg.tar.zst
+   ```
+
+5. After pasting the content, type `EOF` on a new line to complete the transfer.
+
+6. Add the package to the repository:
+   ```
+   pkgrepo> add /home/pkguser/uploads/your-package-1.0-1-x86_64.pkg.tar.zst
+   pkgrepo> exit
+   ```
+
+#### Method 2: Using SCP (separate from the shell)
+
+1. Upload your package using `scp`:
+   ```bash
+   scp -P 2222 your-package-1.0-1-x86_64.pkg.tar.zst pkguser@your-server-ip:~/uploads/
+   ```
+
+2. SSH into the repository and add the package to the database:
+   ```bash
+   ssh -i ./ssh-keys/id_ed25519 -p 2222 pkguser@your-server-ip
+   pkgrepo> add /home/pkguser/uploads/your-package-1.0-1-x86_64.pkg.tar.zst
+   pkgrepo> exit
+   ```
 
 
 ## Security Considerations
@@ -91,6 +129,7 @@ For production use, consider these additional security enhancements:
 
 ## Maintenance
 
+- **Logs**: SSH command history is stored in `/home/pkguser/.pkg_shell_history`
 - **Backup**: The `repo-data` volume contains all your packages.
-- **Cleanup**: Periodically remove old package versions.
-- **Monitoring**: Check disk space usage regularly.
+- **Cleanup**: Use the `clean` command to remove old package versions.
+- **Monitoring**: Use the `status` command to check disk space usage and repository statistics.

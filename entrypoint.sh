@@ -26,13 +26,24 @@ cat "$SSH_PUB_KEY_FILE" > /home/pkguser/.ssh/authorized_keys
 chown pkguser:pkguser /home/pkguser/.ssh/authorized_keys
 chmod 600 /home/pkguser/.ssh/authorized_keys
 
+# Ensure pkg-shell has proper permissions
+echo "Setting up the custom shell..."
+chmod +x /usr/local/bin/pkg-shell
+chown root:root /usr/local/bin/pkg-shell
+
+# Initialize directories and permissions
+mkdir -p /home/pkguser/uploads
+touch /home/pkguser/.pkg_shell_history
+chown -R pkguser:pkguser /home/pkguser
+chmod 755 /home/pkguser/uploads
+
 # Start nginx in background
 echo "Starting nginx..."
 nginx
 
 # Start dropbear SSH server
 echo "Starting Dropbear SSH server..."
-dropbear -R -E -p 2222
+sudo -u pkguser dropbear -R -E -p 2222
 
 # Keep container running
 echo "All services started."

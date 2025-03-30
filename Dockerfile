@@ -18,8 +18,12 @@ RUN pacman -Syu --noconfirm && \
 RUN mkdir -p /srv/repo/x86_64
 WORKDIR /srv/repo
 
-# Create a user for SSH access
-RUN useradd -m -s /bin/bash pkguser && \
+# Create custom shell script for repository management
+COPY pkg-shell.sh /usr/local/bin/pkg-shell
+RUN chmod +x /usr/local/bin/pkg-shell
+
+# Create a user for SSH access with custom shell
+RUN useradd -m -s /usr/local/bin/pkg-shell pkguser && \
     mkdir -p /home/pkguser/.ssh && \
     touch /home/pkguser/.ssh/authorized_keys && \
     chown -R pkguser:pkguser /home/pkguser && \

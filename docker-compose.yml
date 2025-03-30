@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  archrepo:
+    build: .
+    ports:
+      - "8080:80"  # Web server for packages
+      - "2222:2222"  # SSH for uploads
+    volumes:
+      - ./repo-data:/srv/repo  # Persist repository data
+      - ./ssh-keys:/ssh-keys  # SSH keys volume
+    restart: unless-stopped

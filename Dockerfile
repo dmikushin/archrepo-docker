@@ -39,7 +39,9 @@ COPY nginx.conf /etc/nginx/nginx.conf
 
 # Configure Dropbear SSH server
 RUN mkdir -p /etc/dropbear && \
-    dropbearkey -t ed25519 -f /etc/dropbear/dropbear_ed25519_host_key
+    dropbearkey -t ed25519 -f /etc/dropbear/dropbear_ed25519_host_key && \
+    chown pkguser:pkguser /etc/dropbear/dropbear_ed25519_host_key && \
+    bash -c 'echo -e "# /etc/shells: allow pkg-shell as the only login shell\n/usr/local/bin/pkg-shell" >/etc/shells'
 
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh

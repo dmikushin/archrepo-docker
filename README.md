@@ -3,7 +3,7 @@
 Setup your custom ArchLinux package repository and manage it using a Python API.
 
 
-## Setting Up the Repository
+## Setting Up the Server Container
 
 1. Clone this repository into a folder intended to be a package repository
 
@@ -39,93 +39,49 @@ A Python API is used to provide a secure server connection to manage your packag
 
 ### Installation
 
-```bash
-# Clone the repository 
-git clone https://github.com/yourusername/archrepo-api.git
-cd archrepo-api
-
-# Install dependencies (minimal dependencies required)
-pip install -r requirements.txt
+```
+git clone https://github.com/dmikushin/archrepo.git
+cd archrepo
+pip install .
 ```
 
-### SSH Key Setup
+### Usage
 
-The first time you run the container, it will generate an SSH key pair in the `./ssh-keys` directory. You should use this key for authentication.
-
-1. Add the generated SSH key to your SSH configuration:
-
-   ```bash
-   ssh-add ./ssh-keys/id_ed25519
-   ```
-
-2. Make sure the key has the correct permissions:
-
-   ```bash
-   chmod 600 ./ssh-keys/id_ed25519
-   ```
-
-### Command-line Usage
-
-The module can be used as a command-line tool:
+After installation, the `archrepo` command will be available in your `PATH`:
 
 ```bash
-# Upload a package
-python3 archrepo.py upload mypackage-1.0-1-x86_64.pkg.tar.zst --add
+# Show help
+archrepo --help
 
-# Add a previously uploaded package to the repository
-python3 archrepo.py add /home/pkguser/uploads/mypackage-1.0-1-x86_64.pkg.tar.zst
+# Upload a package
+archrepo -H ssh_server upload mypackage-1.0-1-x86_64.pkg.tar.zst --add
+
+# List packages in the repository
+archrepo -H ssh_server list
 
 # Remove a package from the repository
-python3 archrepo.py remove mypackage
-
-# List all packages in the repository
-python3 archrepo.py list
-
-# Clean up old package versions
-python3 archrepo.py clean
+archrepo -H ssh_server remove mypackage
 
 # Check repository status
-python3 archrepo.py status
-
-# Download a package from the repository
-python3 archrepo.py download mypackage-1.0-1-x86_64.pkg.tar.zst -o ./downloaded.pkg.tar.zst
+archrepo -H ssh_server status
 ```
 
-### Python API Usage
+The `-H` option must be followed by a valid `Host` name entry of `.ssh/config`, for example:
 
-You can use the API programmatically in your own Python code:
-
-```python
-from archrepo import ArchRepoClient
-
-# Initialize the client
-client = ArchRepoClient(
-    host="your-server-ip",
-    port="2222",
-    user="pkguser",
-    key_path="./ssh-keys/id_ed25519"
-)
-
-# Upload a package and add it to the repository
-success, message = client.upload_package("mypackage-1.0-1-x86_64.pkg.tar.zst", add_to_repo=True)
-print(message)  # "Package uploaded and added to repository successfully."
-
-# List all packages
-success, packages = client.list_packages()
-if success:
-    for pkg in packages:
-        print(f"{pkg['name']} {pkg['version']} - {pkg['description']}")
-
-# Get repository status
-success, status = client.get_status()
-if success:
-    print(f"Total packages: {status.get('Total packages', 'Unknown')}")
-    print(f"Repository size: {status.get('Repository size', 'Unknown')}")
 ```
+Host ssh_server
+    Hostname archrepo.user.me
+    User pkgconfig
+    Port 2222
+    IdentityFile /path/to/ssh-keys/id_ed25519
+```
+
+The `IdentityFile` referred to by SSH config must be a copy of `./ssh-keys/id_ed25519` file created by the server upon the first Docker container execution. This key is for maintainer's use only, and must be kept secured.
 
 ### Building and Uploading Packages
 
 1. Build your package using makepkg as usual:
+
    ```bash
    git clone https://aur.archlinux.org/package-name.git
    cd package-name
@@ -133,47 +89,18 @@ if success:
    ```
 
 2. Upload and add the package to your repository:
+
    ```bash
-   python3 archrepo.py upload ./your-package-1.0-1-x86_64.pkg.tar.zst --add
+   archrepo -H ssh_server upload ./your-package-1.0-1-x86_64.pkg.tar.zst --add
    ```
-
-### Available API Methods
-
-The Python API provides the following functionality:
-
-- **upload_package(package_path, add_to_repo=False)** - Upload a package to the repository
-- **add_package(package_name)** - Add a previously uploaded package to the repository
-- **remove_package(package_name)** - Remove a package from the repository
-- **list_packages()** - List all packages in the repository
-- **clean_repository()** - Clean up old package versions
-- **get_status()** - Show repository statistics
-- **download_package(package_name, output_path=None)** - Download a package from the repository
-
-### Environment Variables
-
-You can configure the connection details using environment variables:
-
-- `SSH_HOST`: SSH host (default: localhost)
-- `SSH_PORT`: SSH port (default: 2222)
-- `SSH_USER`: SSH username (default: pkguser)
-- `SSH_KEY`: Path to SSH key file (default: ./ssh-keys/id_ed25519)
-
-Example:
-```bash
-export SSH_HOST=my-repo-server.example.com
-export SSH_KEY=~/.ssh/repo_key
-python3 archrepo.py list
-```
 
 
 ## Security Considerations
 
 For production use, consider these additional security enhancements:
 
-1. **Keep your SSH keys secure** and consider setting a passphrase when generating them.
-2. **Restrict the SSH server** to only allow specific IP addresses.
-3. **Enable HTTPS** for package downloads by configuring Nginx with SSL.
-4. **Set up package signing** for better security.
+1. **Enable HTTPS** for package downloads by configuring Nginx with SSL.
+2. **Set up package signing** for better security.
 
 
 ## Maintenance

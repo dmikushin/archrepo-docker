@@ -4,7 +4,7 @@ services:
   archrepo:
     build: .
     ports:
-      - "8080:80"  # Web server for packages
+      - "8080:8080"  # Web server for packages
       - "2222:2222"  # SSH for uploads
     volumes:
       - ./repo-data:/srv/repo  # Persist repository data

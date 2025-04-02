@@ -14,10 +14,6 @@ RUN pacman -Syu --noconfirm && \
     base-devel \
     pacman-contrib
 
-# Create repository directory structure
-RUN mkdir -p /srv/repo/x86_64
-WORKDIR /srv/repo
-
 # Create custom shell script for repository management
 COPY pkg-shell.sh /usr/local/bin/pkg-shell
 RUN chmod +x /usr/local/bin/pkg-shell
@@ -29,10 +25,6 @@ RUN useradd -m -s /usr/local/bin/pkg-shell pkguser && \
     chown -R pkguser:pkguser /home/pkguser && \
     chmod 700 /home/pkguser/.ssh && \
     chmod 600 /home/pkguser/.ssh/authorized_keys
-
-# Allow pkguser to write to repository directory
-RUN chown -R pkguser:pkguser /srv/repo && \
-    chmod -R 775 /srv/repo
 
 # Configure NGINX
 COPY nginx.conf /etc/nginx/nginx.conf
@@ -48,7 +40,7 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Expose ports
-EXPOSE 80 2222
+EXPOSE 8080 2222
 
 # Set entrypoint
 ENTRYPOINT ["/entrypoint.sh"]

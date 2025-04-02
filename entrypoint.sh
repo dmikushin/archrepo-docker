@@ -1,11 +1,16 @@
 #!/bin/bash
 set -e
 
+# Allow pkguser to write to repository directory
+mkdir -p /srv/repo
+chown -R pkguser:pkguser /srv/repo
+chmod -R 700 /srv/repo
+
 # Initialize repository if it's empty
 if [ ! -f /srv/repo/x86_64/repo.db.tar.gz ]; then
     echo "Initializing empty repository..."
-    mkdir -p /srv/repo/x86_64
-    repo-add /srv/repo/x86_64/repo.db.tar.gz
+    sudo -u pkguser mkdir -p /srv/repo/x86_64
+    sudo -u pkguser repo-add /srv/repo/x86_64/repo.db.tar.gz
 fi
 
 # Check if SSH key exists, if not create it
@@ -35,11 +40,15 @@ chown root:root /usr/local/bin/pkg-shell
 mkdir -p /home/pkguser/uploads
 touch /home/pkguser/.pkg_shell_history
 chown -R pkguser:pkguser /home/pkguser
-chmod 755 /home/pkguser/uploads
+chmod 700 /home/pkguser/uploads
 
 # Start nginx in background
 echo "Starting nginx..."
-nginx
+mkdir -p /var/lib/nginx
+chown -R pkguser:pkguser /var/lib/nginx
+mkdir -p /var/log/nginx
+chown -R pkguser:pkguser /var/log/nginx
+sudo -u pkguser nginx
 
 # Start dropbear SSH server
 echo "Starting Dropbear SSH server..."

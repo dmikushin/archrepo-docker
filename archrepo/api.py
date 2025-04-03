@@ -205,43 +205,6 @@ class ArchRepoClient:
 
         return True, status_info
 
-    def download_package(self, package_name: str, output_path: Optional[str] = None) -> Tuple[bool, str]:
-        """
-        Download a package from the repository.
-
-        Args:
-            package_name: Name of the package file to download
-            output_path: Local path to save the file (default: current directory with same filename)
-
-        Returns:
-            Tuple of (success, message or output path)
-        """
-        if not output_path:
-            output_path = os.path.basename(package_name)
-
-        return_code, stdout, stderr = self._run_ssh_interactive([f"send {package_name}"])
-
-        if return_code != 0:
-            return False, f"Failed to download package: {stderr}"
-
-        # Extract the base64 data between the START and END markers
-        match = re.search(r"-----START FILE DATA-----\n(.*?)-----END FILE DATA-----",
-                         stdout, re.DOTALL)
-
-        if not match:
-            return False, "Failed to extract file data from response."
-
-        encoded_data = match.group(1).strip()
-
-        try:
-            # Decode and save the file
-            with open(output_path, 'wb') as file:
-                file.write(base64.b64decode(encoded_data))
-            return True, f"Package downloaded successfully to {output_path}"
-        except Exception as e:
-            return False, f"Error saving package file: {str(e)}"
-
-
 def main():
     """
     Command-line interface for ArchRepoClient.
@@ -269,11 +232,6 @@ def main():
 
     # Status command
     subparsers.add_parser("status", help="Show repository status")
-
-    # Download command
-    download_parser = subparsers.add_parser("download", help="Download a package")
-    download_parser.add_argument("package_name", help="Package file to download")
-    download_parser.add_argument("-o", "--output", help="Output file path")
 
     args = parser.parse_args()
 
@@ -326,11 +284,6 @@ def main():
             else:
                 print(f"Error: {result}")
                 return 1
-
-        elif args.command == "download":
-            success, message = client.download_package(args.package_name, args.output)
-            print(message)
-            return 0 if success else 1
 
     except Exception as e:
         print(f"Error: {str(e)}")

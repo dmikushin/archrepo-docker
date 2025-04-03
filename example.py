@@ -36,14 +36,7 @@ def main():
     success, message = client.clean_repository()
     print(f"\nRepository cleanup: {message}")
 
-    # Example 5: Download a package
-    success, message = client.download_package(
-        "my-package-1.0-1-x86_64.pkg.tar.zst",
-        output_path="./downloaded-package.pkg.tar.zst"
-    )
-    print(f"\nDownload result: {message}")
-
-    # Example 6: Remove a package
+    # Example 5: Remove a package
     success, message = client.remove_package("my-package")
     print(f"\nRemove result: {message}")
 

@@ -51,11 +51,22 @@ function add_package {
     fi
 
     local pkg_file="$1"
+    local sig_file="${pkg_file}.zsig"
+
     # If the package is not in the repo dir, copy it there
     if [ ! -f "$REPO_DIR/$pkg_file" ]; then
         echo "Copying package to repository..."
         cp "$pkg_file" "$REPO_DIR/"
         pkg_file="$(basename "$pkg_file")"
+
+        # Also copy signature file if it exists
+        if [ -f "${1}.zsig" ]; then
+            echo "Copying signature file to repository..."
+            cp "${1}.zsig" "$REPO_DIR/${pkg_file}.zsig"
+        elif [ -f "$UPLOAD_DIR/${pkg_file}.zsig" ]; then
+            echo "Copying signature file from uploads to repository..."
+            cp "$UPLOAD_DIR/${pkg_file}.zsig" "$REPO_DIR/${pkg_file}.zsig"
+        fi
     fi
 
     # Update the repository database
@@ -84,9 +95,10 @@ function remove_package {
     echo "Removing package from database..."
     repo-remove "$DB_NAME" "$1"
 
-    # Remove the package file(s)
-    echo "Removing package files..."
+    # Remove the package file(s) and signatures
+    echo "Removing package files and signatures..."
     rm -fv "$1"-*.pkg.tar.zst
+    rm -fv "$1"-*.pkg.tar.zst.zsig
     echo "Package removed successfully."
 }
 
@@ -122,7 +134,7 @@ function clean_repo {
             if [ "$count" -gt 1 ]; then
                 # Remove all but the latest version
                 echo "Cleaning old versions of $pkg_name..."
-                echo "$versions" | head -n -1 | xargs rm -v
+                echo "$versions" | head -n -1 | xargs -I{} sh -c 'rm -v "{}" && rm -fv "{}".zsig'
                 cleaned=$((cleaned + count - 1))
             fi
         fi
@@ -143,6 +155,10 @@ function show_status {
     # Count packages
     local pkg_count=$(ls -1 *.pkg.tar.zst 2>/dev/null | wc -l)
     echo "Total packages: $pkg_count"
+
+    # Count signatures
+    local sig_count=$(ls -1 *.pkg.tar.zst.zsig 2>/dev/null | wc -l)
+    echo "Signed packages: $sig_count"
 
     # Repository size
     local repo_size=$(du -sh "$REPO_DIR" | cut -f1)
@@ -167,6 +183,13 @@ function receive_file {
     fi
 
     local filename="$1"
+    local is_signature=false
+
+    # Check if this is a signature file
+    if [[ "$filename" == *.zsig ]]; then
+        is_signature=true
+    fi
+
     echo "Ready to receive file: $filename"
     echo "Please paste the base64-encoded file content and end with a line containing only 'EOF'"
     echo "Waiting for data..."
@@ -188,9 +211,16 @@ function receive_file {
 
     # Check if the file was created successfully
     if [ -f "$UPLOAD_DIR/$filename" ]; then
-        echo "File received successfully: $filename"
+        if $is_signature; then
+            echo "Signature file received successfully: $filename"
+        else
+            echo "File received successfully: $filename"
+        fi
         echo "Size: $(du -h "$UPLOAD_DIR/$filename" | cut -f1)"
-        echo "Use 'add $UPLOAD_DIR/$filename' to add it to the repository"
+
+        if ! $is_signature; then
+            echo "Use 'add $UPLOAD_DIR/$filename' to add it to the repository"
+        fi
         return 0
     else
         echo "Error: Failed to receive file."

@@ -55,12 +55,44 @@ class ArchRepoClient:
         stdout, stderr = process.communicate(input=input_data)
         return process.returncode, stdout, stderr
 
-    def publish_package(self, package_path: str) -> Tuple[bool, str]:
+    def _encode_and_send_file(self, commands: List[str], file_path: str, filename: str) -> List[str]:
+        """
+        Encode a file and add commands to send it to the server.
+
+        Args:
+            commands: The command list to append to
+            file_path: Path to the file to encode
+            filename: Name to use for the file on the server
+
+        Returns:
+            Updated commands list
+        """
+        # Base64 encode the file
+        with open(file_path, 'rb') as file:
+            file_data = file.read()
+        encoded_data = base64.b64encode(file_data).decode('utf-8')
+
+        # Add receive command
+        commands.append(f"receive {filename}")
+
+        # Add the base64 data in chunks to avoid line length issues
+        chunk_size = 76  # Standard base64 line length
+        for i in range(0, len(encoded_data), chunk_size):
+            commands.append(encoded_data[i:i+chunk_size])
+
+        # End of file marker
+        commands.append("EOF")
+
+        return commands
+
+    def publish_package(self, package_path: str, no_signing: bool = False) -> Tuple[bool, str]:
         """
         Publish a package to the repository (upload and add in a single operation).
+        Also uploads the .zsig signature file if it exists and no_signing is False.
 
         Args:
             package_path: Path to the package file
+            no_signing: If True, signature check will be skipped
 
         Returns:
             Tuple of (success, message)
@@ -72,22 +104,24 @@ class ArchRepoClient:
         # Get just the filename without path
         filename = os.path.basename(package_path)
 
+        # Check for signature file
+        signature_path = f"{package_path}.zsig"
+        signature_exists = os.path.isfile(signature_path)
+
+        if not signature_exists and not no_signing:
+            return False, f"Signature file not found: {signature_path}. Use --no-signing to skip signature check."
+
         try:
-            # Base64 encode the package file
-            with open(package_path, 'rb') as file:
-                file_data = file.read()
-            encoded_data = base64.b64encode(file_data).decode('utf-8')
-
             # Prepare the commands list
-            commands = [f"receive {filename}"]
+            commands = []
 
-            # Add the base64 data in chunks to avoid line length issues
-            chunk_size = 76  # Standard base64 line length
-            for i in range(0, len(encoded_data), chunk_size):
-                commands.append(encoded_data[i:i+chunk_size])
+            # Send the package file
+            commands = self._encode_and_send_file(commands, package_path, filename)
 
-            # End of file marker
-            commands.append("EOF")
+            # If we have a signature and signing is required, send it too
+            if signature_exists and not no_signing:
+                signature_filename = f"{filename}.zsig"
+                commands = self._encode_and_send_file(commands, signature_path, signature_filename)
 
             # Add the package to the repo
             commands.append(f"add /home/pkguser/uploads/{filename}")
@@ -98,12 +132,24 @@ class ArchRepoClient:
             if return_code != 0:
                 return False, f"Operation failed: {stderr}"
 
-            if "File received successfully" in stdout and "Package added successfully" in stdout:
-                return True, "Package uploaded and added to repository successfully."
-            elif "File received successfully" in stdout:
-                return False, "Package uploaded but failed to add to repository."
+            # Success messages to look for
+            pkg_received = "File received successfully" in stdout
+            sig_received = True  # Assume true initially
+
+            # If we sent a signature, check it was received
+            if signature_exists and not no_signing:
+                sig_received = "Signature file received successfully" in stdout
+
+            pkg_added = "Package added successfully" in stdout
+
+            if pkg_received and sig_received and pkg_added:
+                return True, "Package and signature uploaded and added to repository successfully."
+            elif pkg_received and sig_received:
+                return False, "Package and signature uploaded but failed to add to repository."
+            elif pkg_received:
+                return False, "Package uploaded but signature transfer failed or package addition failed."
             else:
-                return False, "Upload failed: File not received successfully."
+                return False, "Upload failed: Files not received successfully."
 
         except Exception as e:
             return False, f"Error during operation: {str(e)}"
@@ -219,6 +265,7 @@ def main():
     # Publish command (upload and add)
     publish_parser = subparsers.add_parser("publish", help="Publish a package (upload and add to repository)")
     publish_parser.add_argument("package_file", help="Package file to publish")
+    publish_parser.add_argument("--no-signing", action="store_true", help="Skip signature check for this package")
 
     # Remove command
     remove_parser = subparsers.add_parser("remove", help="Remove a package")
@@ -245,7 +292,8 @@ def main():
 
         # Execute requested command
         if args.command == "publish":
-            success, message = client.publish_package(args.package_file)
+            no_signing = getattr(args, "no_signing", False)
+            success, message = client.publish_package(args.package_file, no_signing=no_signing)
             print(message)
             return 0 if success else 1
 

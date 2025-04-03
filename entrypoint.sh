@@ -31,10 +31,10 @@ cat "$SSH_PUB_KEY_FILE" > /home/pkguser/.ssh/authorized_keys
 chown pkguser:pkguser /home/pkguser/.ssh/authorized_keys
 chmod 600 /home/pkguser/.ssh/authorized_keys
 
-# Ensure pkg-shell has proper permissions
+# Ensure pkg_shell has proper permissions
 echo "Setting up the custom shell..."
-chmod +x /usr/local/bin/pkg-shell
-chown root:root /usr/local/bin/pkg-shell
+chmod +x /usr/local/bin/pkg_shell
+chown root:root /usr/local/bin/pkg_shell
 
 # Initialize directories and permissions
 mkdir -p /home/pkguser/uploads

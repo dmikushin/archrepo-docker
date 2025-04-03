@@ -3,7 +3,7 @@
 test_direct_api.py - Direct test suite for ArchRepo API
 
 This test suite connects the archrepo.api.ArchRepoClient directly to
-the mock_pkg_shell.sh script without using SSH/network connections.
+the mock_pkg_shell.py script without using SSH/network connections.
 It implements a complete test harness for all API functions without
 requiring network connectivity between client and server.
 """
@@ -23,7 +23,7 @@ from archrepo.api import ArchRepoClient
 
 
 class DirectConnection:
-    """Direct connection to mock_pkg_shell.sh instead of SSH"""
+    """Direct connection to mock_pkg_shell.py instead of SSH"""
 
     def __init__(self, shell_script, real_popen):
         self.shell_script = shell_script
@@ -67,7 +67,7 @@ class TestDirectArchRepoAPI(unittest.TestCase):
         cls.uploads_dir.mkdir(parents=True, exist_ok=True)
 
         # Path to the mock shell script
-        cls.mock_shell = Path(__file__).parent / 'mock_pkg_shell.sh'
+        cls.mock_shell = Path(__file__).parent / 'mock_pkg_shell.py'
 
         # Path to the dummy package
         cls.dummy_pkg = Path(__file__).parent / 'fixtures/test-package-1.0.0-1-x86_64.pkg.tar.zst'

@@ -37,6 +37,16 @@ if [ "$IN_DOCKER" = "1" ]; then
         ./generate_dummy_package.sh
     fi
 
+    # Make sure Python modules are accessible
+    echo -e "${YELLOW}Setting up Python environment...${NC}"
+    # Copy main module to Python path if not already installed
+    if [ ! -f $(python -c "import sys; print(next(p for p in sys.path if p.endswith('site-packages')))")/pkg_shell.py ]; then
+        cp pkg_shell.py $(python -c "import sys; print(next(p for p in sys.path if p.endswith('site-packages')))")
+    fi
+
+    # Make the mock shell executable
+    chmod +x mock_pkg_shell.py
+
     # Run the tests
     echo -e "${YELLOW}Running API tests...${NC}"
     cd /app
@@ -90,6 +100,12 @@ else
             exit 1
         fi
 
+        if ! command -v python &> /dev/null; then
+            echo -e "${RED}Error: Python is not installed${NC}"
+            echo "Please install with: sudo pacman -S python"
+            exit 1
+        fi
+
         # Setup test environment
         echo -e "${YELLOW}Setting up local test environment...${NC}"
         mkdir -p /tmp/test_repo/x86_64
@@ -107,6 +123,17 @@ else
             echo -e "${YELLOW}Generating dummy package...${NC}"
             ./generate_dummy_package.sh
         fi
+
+        # Make sure Python modules are accessible
+        echo -e "${YELLOW}Setting up Python environment...${NC}"
+        # Copy main module to Python path if not already installed
+        PYTHON_SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+        if [ ! -f "$PYTHON_SITE_PACKAGES/pkg_shell.py" ]; then
+            sudo cp pkg_shell.py "$PYTHON_SITE_PACKAGES/"
+        fi
+
+        # Make the mock shell executable
+        chmod +x mock_pkg_shell.py
 
         # Run the tests
         echo -e "${YELLOW}Running API tests...${NC}"

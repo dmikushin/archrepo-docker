@@ -12,14 +12,15 @@ RUN pacman -Syu --noconfirm && \
     sudo \
     git \
     base-devel \
-    pacman-contrib
+    pacman-contrib \
+    python
 
 # Create custom shell script for repository management
-COPY pkg-shell.sh /usr/local/bin/pkg-shell
-RUN chmod +x /usr/local/bin/pkg-shell
+COPY pkg_shell.py /usr/local/bin/pkg_shell
+RUN chmod +x /usr/local/bin/pkg_shell
 
 # Create a user for SSH access with custom shell
-RUN useradd -m -s /usr/local/bin/pkg-shell pkguser && \
+RUN useradd -m -s /usr/local/bin/pkg_shell pkguser && \
     mkdir -p /home/pkguser/.ssh && \
     touch /home/pkguser/.ssh/authorized_keys && \
     chown -R pkguser:pkguser /home/pkguser && \
@@ -33,7 +34,7 @@ COPY nginx.conf /etc/nginx/nginx.conf
 RUN mkdir -p /etc/dropbear && \
     dropbearkey -t ed25519 -f /etc/dropbear/dropbear_ed25519_host_key && \
     chown pkguser:pkguser /etc/dropbear/dropbear_ed25519_host_key && \
-    bash -c 'echo -e "# /etc/shells: allow pkg-shell as the only login shell\n/usr/local/bin/pkg-shell" >/etc/shells'
+    bash -c 'echo -e "# /etc/shells: allow pkg_shell as the only login shell\n/usr/local/bin/pkg_shell" >/etc/shells'
 
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh

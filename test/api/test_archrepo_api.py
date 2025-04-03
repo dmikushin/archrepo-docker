@@ -2,7 +2,7 @@
 """
 test_archrepo_api.py - Test harness for ArchRepo API
 
-This script sets up a direct connection between archrepo.api and pkg-shell.sh
+This script sets up a direct connection between archrepo.api and pkg_shell.py
 without using SSH/network connections, allowing for efficient testing inside
 a Docker container.
 """
@@ -37,12 +37,12 @@ class MockShellProcess:
             temp_input.flush()
 
             with tempfile.NamedTemporaryFile(mode='w+', delete=False) as temp_output:
-                # Run the pkg-shell script with the commands
+                # Run the pkg_shell.py script with the commands
                 cmd = [
                     'bash',
                     self.pkg_shell_path,
                     # You may need to add arguments here to set up repo paths
-                    # Or modify pkg-shell.sh to accept different paths for testing
+                    # Or modify pkg_shell.py to accept different paths for testing
                 ]
 
                 # Set environment variables for testing
@@ -81,8 +81,8 @@ class TestArchRepoAPI(unittest.TestCase):
         cls.uploads_dir = Path('/tmp/uploads')
         cls.uploads_dir.mkdir(parents=True, exist_ok=True)
 
-        # Path to pkg-shell.sh - adjust as needed
-        cls.pkg_shell_path = Path(__file__).parent.parent.parent / 'pkg-shell.sh'
+        # Path to pkg_shell.py - adjust as needed
+        cls.pkg_shell_path = Path(__file__).parent.parent.parent / 'pkg_shell.py'
 
         # Create a dummy package file
         cls.dummy_pkg_path = cls._create_dummy_package()

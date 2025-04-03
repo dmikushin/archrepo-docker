@@ -15,9 +15,9 @@ mkdir -p "${TEST_DIR}/fixtures"
 echo "Installing test files..."
 
 # Copy test scripts
-cat > "${TEST_DIR}/mock_pkg_shell.sh" << 'EOF'
+cat > "${TEST_DIR}/mock_pkg_shell.py" << 'EOF'
 #!/bin/bash
-# The content of mock_pkg_shell.sh will be inserted here
+# The content of mock_pkg_shell.py will be inserted here
 EOF
 
 cat > "${TEST_DIR}/generate_dummy_package.sh" << 'EOF'
@@ -40,7 +40,7 @@ cat > "${TEST_DIR}/Dockerfile.test" << 'EOF'
 EOF
 
 # Make scripts executable
-chmod +x "${TEST_DIR}/mock_pkg_shell.sh"
+chmod +x "${TEST_DIR}/mock_pkg_shell.py"
 chmod +x "${TEST_DIR}/generate_dummy_package.sh"
 chmod +x "${TEST_DIR}/run_tests.sh"
 chmod +x "${TEST_DIR}/test_direct_api.py"

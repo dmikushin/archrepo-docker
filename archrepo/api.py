@@ -55,17 +55,12 @@ class ArchRepoClient:
         stdout, stderr = process.communicate(input=input_data)
         return process.returncode, stdout, stderr
 
-    def upload_package(
-        self,
-        package_path: str,
-        add_to_repo: bool = False
-    ) -> Tuple[bool, str]:
+    def publish_package(self, package_path: str) -> Tuple[bool, str]:
         """
-        Upload a package to the repository.
+        Publish a package to the repository (upload and add in a single operation).
 
         Args:
             package_path: Path to the package file
-            add_to_repo: Whether to add the package to the repository after upload
 
         Returns:
             Tuple of (success, message)
@@ -94,54 +89,24 @@ class ArchRepoClient:
             # End of file marker
             commands.append("EOF")
 
-            # If we need to add the package to the repo, add that command
-            if add_to_repo:
-                commands.append(f"add /home/pkguser/uploads/{filename}")
+            # Add the package to the repo
+            commands.append(f"add /home/pkguser/uploads/{filename}")
 
             # Run the commands interactively
             return_code, stdout, stderr = self._run_ssh_interactive(commands)
 
             if return_code != 0:
-                return False, f"Upload failed: {stderr}"
+                return False, f"Operation failed: {stderr}"
 
-            if "File received successfully" in stdout:
-                if add_to_repo and "Package added successfully" in stdout:
-                    return True, "Package uploaded and added to repository successfully."
-                elif add_to_repo:
-                    return False, "Package uploaded but failed to add to repository."
-                else:
-                    return True, "Package uploaded successfully."
+            if "File received successfully" in stdout and "Package added successfully" in stdout:
+                return True, "Package uploaded and added to repository successfully."
+            elif "File received successfully" in stdout:
+                return False, "Package uploaded but failed to add to repository."
             else:
                 return False, "Upload failed: File not received successfully."
 
         except Exception as e:
-            return False, f"Error uploading package: {str(e)}"
-
-    def add_package(self, package_name: str) -> Tuple[bool, str]:
-        """
-        Add a previously uploaded package to the repository.
-
-        Args:
-            package_name: Name of the package file or full path
-
-        Returns:
-            Tuple of (success, message)
-        """
-        # If it's a full path, use it; otherwise assume it's in the uploads directory
-        if not package_name.startswith('/'):
-            package_path = f"/home/pkguser/uploads/{package_name}"
-        else:
-            package_path = package_name
-
-        return_code, stdout, stderr = self._run_ssh_interactive([f"add {package_path}"])
-
-        if return_code != 0:
-            return False, f"Failed to add package: {stderr}"
-
-        if "Package added successfully" in stdout:
-            return True, "Package added to repository successfully."
-        else:
-            return False, "Failed to add package to repository."
+            return False, f"Error during operation: {str(e)}"
 
     def remove_package(self, package_name: str) -> Tuple[bool, str]:
         """
@@ -288,15 +253,9 @@ def main():
     # Create subparsers for different commands
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
 
-    # Upload command
-    upload_parser = subparsers.add_parser("upload", help="Upload a package")
-    upload_parser.add_argument("package_file", help="Package file to upload")
-    upload_parser.add_argument("-a", "--add", action="store_true",
-                             help="Add package to repository after upload")
-
-    # Add command
-    add_parser = subparsers.add_parser("add", help="Add a previously uploaded package")
-    add_parser.add_argument("package_file", help="Package file name or path")
+    # Publish command (upload and add)
+    publish_parser = subparsers.add_parser("publish", help="Publish a package (upload and add to repository)")
+    publish_parser.add_argument("package_file", help="Package file to publish")
 
     # Remove command
     remove_parser = subparsers.add_parser("remove", help="Remove a package")
@@ -327,13 +286,8 @@ def main():
         client = ArchRepoClient(host=args.host)
 
         # Execute requested command
-        if args.command == "upload":
-            success, message = client.upload_package(args.package_file, args.add)
-            print(message)
-            return 0 if success else 1
-
-        elif args.command == "add":
-            success, message = client.add_package(args.package_file)
+        if args.command == "publish":
+            success, message = client.publish_package(args.package_file)
             print(message)
             return 0 if success else 1
 

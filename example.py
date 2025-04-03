@@ -14,9 +14,9 @@ def main():
         key_path="./ssh-keys/id_ed25519"
     )
 
-    # Example 1: Upload a package
-    success, message = client.upload_package("my-package-1.0-1-x86_64.pkg.tar.zst", add_to_repo=True)
-    print(f"Upload result: {message}")
+    # Example 1: Publish a package (upload and add to repository in one step)
+    success, message = client.publish_package("my-package-1.0-1-x86_64.pkg.tar.zst")
+    print(f"Publish result: {message}")
 
     # Example 2: List packages in the repository
     success, packages = client.list_packages()

@@ -53,8 +53,8 @@ After installation, the `archrepo` command will be available in your `PATH`:
 # Show help
 archrepo --help
 
-# Upload a package
-archrepo -H ssh_server upload mypackage-1.0-1-x86_64.pkg.tar.zst --add
+# Publish a package in the repository
+archrepo -H ssh_server publish mypackage-1.0-1-x86_64.pkg.tar.zst
 
 # List packages in the repository
 archrepo -H ssh_server list
@@ -78,7 +78,7 @@ Host ssh_server
 
 The `IdentityFile` referred to by SSH config must be a copy of `./ssh-keys/id_ed25519` file created by the server upon the first Docker container execution. This key is for maintainer's use only, and must be kept secured.
 
-### Building and Uploading Packages
+### Building and Publishing Packages
 
 1. Build your package using makepkg as usual:
 
@@ -88,10 +88,10 @@ The `IdentityFile` referred to by SSH config must be a copy of `./ssh-keys/id_ed
    makepkg -s
    ```
 
-2. Upload and add the package to your repository:
+2. Publish the package to your repository:
 
    ```bash
-   archrepo -H ssh_server upload ./your-package-1.0-1-x86_64.pkg.tar.zst --add
+   archrepo -H ssh_server publish ./your-package-1.0-1-x86_64.pkg.tar.zst
    ```
 
 

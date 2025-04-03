@@ -55,7 +55,7 @@ archrepo --help
 
 # Publish a package with its signature in the repository
 archrepo -H ssh_server publish mypackage-1.0-1-x86_64.pkg.tar.zst
-# Note: This will automatically look for mypackage-1.0-1-x86_64.pkg.tar.zst.zsig
+# Note: This will automatically look for mypackage-1.0-1-x86_64.pkg.tar.zst.sig
 # and upload it alongside the package
 
 # Publish a package without requiring signature
@@ -85,9 +85,9 @@ The `IdentityFile` referred to by SSH config must be a copy of `./ssh-keys/id_ed
 
 ### Package Signing
 
-By default, each package is expected to have a corresponding `.zsig` signature file. When you publish a package:
+By default, each package is expected to have a corresponding `.sig` signature file. When you publish a package:
 
-1. The tool looks for `yourpackage.pkg.tar.zst.zsig` in the same directory as the package
+1. The tool looks for `yourpackage.pkg.tar.zst.sig` in the same directory as the package
 2. It uploads both the package and its signature to the repository
 3. If no signature is found, the operation fails unless `--no-signing` is specified
 
@@ -105,7 +105,7 @@ By default, each package is expected to have a corresponding `.zsig` signature f
 
    ```bash
    # Create a signature for your package
-   gpg --output your-package-1.0-1-x86_64.pkg.tar.zst.zsig --sign your-package-1.0-1-x86_64.pkg.tar.zst
+   gpg --output your-package-1.0-1-x86_64.pkg.tar.zst.sig --sign your-package-1.0-1-x86_64.pkg.tar.zst
    ```
 
 3. Publish the package to your repository:

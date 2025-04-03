@@ -88,7 +88,7 @@ class ArchRepoClient:
     def publish_package(self, package_path: str, no_signing: bool = False) -> Tuple[bool, str]:
         """
         Publish a package to the repository (upload and add in a single operation).
-        Also uploads the .zsig signature file if it exists and no_signing is False.
+        Also uploads the .sig signature file if it exists and no_signing is False.
 
         Args:
             package_path: Path to the package file
@@ -105,7 +105,7 @@ class ArchRepoClient:
         filename = os.path.basename(package_path)
 
         # Check for signature file
-        signature_path = f"{package_path}.zsig"
+        signature_path = f"{package_path}.sig"
         signature_exists = os.path.isfile(signature_path)
 
         if not signature_exists and not no_signing:
@@ -120,7 +120,7 @@ class ArchRepoClient:
 
             # If we have a signature and signing is required, send it too
             if signature_exists and not no_signing:
-                signature_filename = f"{filename}.zsig"
+                signature_filename = f"{filename}.sig"
                 commands = self._encode_and_send_file(commands, signature_path, signature_filename)
 
             # Add the package to the repo

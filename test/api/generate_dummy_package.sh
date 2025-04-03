@@ -61,10 +61,10 @@ rm "${PKG_NAME}.tar"
 
 # Create a dummy signature file
 echo "Creating dummy signature file..."
-echo "THIS IS A DUMMY SIGNATURE FOR TESTING PURPOSES ONLY" > "${PKG_FILENAME}.zsig"
+echo "THIS IS A DUMMY SIGNATURE FOR TESTING PURPOSES ONLY" > "${PKG_FILENAME}.sig"
 
 echo "Package created: ${PKG_FILENAME}"
-echo "Signature created: ${PKG_FILENAME}.zsig"
+echo "Signature created: ${PKG_FILENAME}.sig"
 
 # Clean up temporary files
 rm -rf pkg

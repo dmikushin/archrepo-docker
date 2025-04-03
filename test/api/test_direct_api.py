@@ -120,7 +120,7 @@ class TestDirectArchRepoAPI(unittest.TestCase):
         # Copy the test package to a location where it can be found
         test_pkg_path = self.uploads_dir / self.dummy_pkg.name
         shutil.copy(self.dummy_pkg, test_pkg_path)
-        shutil.copy(f"{self.dummy_pkg}.zsig", f"{test_pkg_path}.zsig")
+        shutil.copy(f"{self.dummy_pkg}.sig", f"{test_pkg_path}.sig")
 
         # Test publishing with signature
         success, message = self.client.publish_package(str(test_pkg_path))
@@ -128,7 +128,7 @@ class TestDirectArchRepoAPI(unittest.TestCase):
         self.assertIn("successfully", message.lower())
 
         # Test publishing without signature requirement
-        os.remove(f"{test_pkg_path}.zsig")  # Remove signature file
+        os.remove(f"{test_pkg_path}.sig")  # Remove signature file
         success, message = self.client.publish_package(str(test_pkg_path), no_signing=True)
         self.assertTrue(success, f"Failed to publish package without signature: {message}")
 
@@ -138,7 +138,7 @@ class TestDirectArchRepoAPI(unittest.TestCase):
         test_pkg_path = self.uploads_dir / self.dummy_pkg.name
         if not test_pkg_path.exists():
             shutil.copy(self.dummy_pkg, test_pkg_path)
-            shutil.copy(f"{self.dummy_pkg}.zsig", f"{test_pkg_path}.zsig")
+            shutil.copy(f"{self.dummy_pkg}.sig", f"{test_pkg_path}.sig")
             self.client.publish_package(str(test_pkg_path))
 
         # Test listing packages
@@ -159,7 +159,7 @@ class TestDirectArchRepoAPI(unittest.TestCase):
         test_pkg_path = self.uploads_dir / self.dummy_pkg.name
         if not test_pkg_path.exists():
             shutil.copy(self.dummy_pkg, test_pkg_path)
-            shutil.copy(f"{self.dummy_pkg}.zsig", f"{test_pkg_path}.zsig")
+            shutil.copy(f"{self.dummy_pkg}.sig", f"{test_pkg_path}.sig")
             self.client.publish_package(str(test_pkg_path))
 
         # Extract package name (without version)
@@ -188,7 +188,7 @@ class TestDirectArchRepoAPI(unittest.TestCase):
                 f.write(f"Test package version {version}")
 
             # Create a dummy signature
-            with open(f"{test_pkg_path}.zsig", 'w') as f:
+            with open(f"{test_pkg_path}.sig", 'w') as f:
                 f.write(f"Test signature for version {version}")
 
             # Publish it

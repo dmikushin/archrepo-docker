@@ -44,7 +44,7 @@ function add_package {
     fi
 
     local pkg_file="$1"
-    local sig_file="${pkg_file}.zsig"
+    local sig_file="${pkg_file}.sig"
 
     # If the package is not in the repo dir, copy it there
     if [ ! -f "$REPO_DIR/$(basename "$pkg_file")" ]; then
@@ -53,12 +53,12 @@ function add_package {
         pkg_file="$(basename "$pkg_file")"
 
         # Also copy signature file if it exists
-        if [ -f "${1}.zsig" ]; then
+        if [ -f "${1}.sig" ]; then
             echo "Copying signature file to repository..."
-            cp "${1}.zsig" "$REPO_DIR/${pkg_file}.zsig"
-        elif [ -f "$UPLOAD_DIR/${pkg_file}.zsig" ]; then
+            cp "${1}.sig" "$REPO_DIR/${pkg_file}.sig"
+        elif [ -f "$UPLOAD_DIR/${pkg_file}.sig" ]; then
             echo "Copying signature file from uploads to repository..."
-            cp "$UPLOAD_DIR/${pkg_file}.zsig" "$REPO_DIR/${pkg_file}.zsig"
+            cp "$UPLOAD_DIR/${pkg_file}.sig" "$REPO_DIR/${pkg_file}.sig"
         fi
     else
         # Make sure we're using the basename for repo operations
@@ -90,7 +90,7 @@ function remove_package {
     # Remove the package file(s) and signatures
     echo "Removing package files and signatures..."
     rm -fv "$1"-*.pkg.tar.zst
-    rm -fv "$1"-*.pkg.tar.zst.zsig
+    rm -fv "$1"-*.pkg.tar.zst.sig
     echo "Package removed successfully."
     return 0
 }
@@ -135,7 +135,7 @@ function clean_repo {
         if [ "$count" -gt 1 ]; then
             # Remove all but the latest version
             echo "Cleaning old versions of $pkg_name..."
-            echo "$versions" | head -n -1 | xargs -I{} sh -c 'rm -v "{}" && rm -fv "{}".zsig'
+            echo "$versions" | head -n -1 | xargs -I{} sh -c 'rm -v "{}" && rm -fv "{}".sig'
             cleaned=$((cleaned + count - 1))
         fi
     done
@@ -158,7 +158,7 @@ function show_status {
     echo "Total packages: $pkg_count"
 
     # Count signatures
-    local sig_count=$(ls -1 *.pkg.tar.zst.zsig 2>/dev/null | wc -l)
+    local sig_count=$(ls -1 *.pkg.tar.zst.sig 2>/dev/null | wc -l)
     echo "Signed packages: $sig_count"
 
     # Repository size
@@ -184,7 +184,7 @@ function receive_file {
     local is_signature=false
 
     # Check if this is a signature file
-    if [[ "$filename" == *.zsig ]]; then
+    if [[ "$filename" == *.sig ]]; then
         is_signature=true
     fi
 

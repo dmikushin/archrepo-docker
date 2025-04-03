@@ -104,7 +104,7 @@ class TestArchRepoAPI(unittest.TestCase):
         ], check=True)
 
         # Create a dummy signature file
-        sig_path = Path(f"{pkg_path}.zsig")
+        sig_path = Path(f"{pkg_path}.sig")
         with open(sig_path, 'wb') as f:
             f.write(b'DUMMY SIGNATURE')
 
@@ -193,7 +193,7 @@ class TestArchRepoAPI(unittest.TestCase):
                 f.write(f'DUMMY PACKAGE {version}'.encode())
 
             # Create a dummy signature
-            with open(f'{pkg_path}.zsig', 'wb') as f:
+            with open(f'{pkg_path}.sig', 'wb') as f:
                 f.write(f'DUMMY SIGNATURE {version}'.encode())
 
             # Publish it

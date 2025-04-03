@@ -1,0 +1,46 @@
+FROM archlinux:base
+
+# Update system and install required packages
+RUN pacman -Syu --noconfirm && \
+    pacman -S --noconfirm \
+    python \
+    python-pipx \
+    python-setuptools \
+    python-wheel \
+    git \
+    base-devel \
+    cmake \
+    tar \
+    zstd \
+    pacman-contrib
+
+# Create directory structure
+WORKDIR /app
+RUN mkdir -p /app/test/api/fixtures \
+    && mkdir -p /tmp/test_repo/x86_64 \
+    && mkdir -p /tmp/uploads
+
+# Copy the files from the project
+COPY . /app/
+
+# Make scripts executable
+RUN chmod +x /app/test/api/generate_dummy_package.sh \
+    && chmod +x /app/test/api/mock_pkg_shell.sh \
+    && chmod +x /app/test/api/run_tests.sh
+
+ENV PATH=$PATH:/root/.local/bin
+
+# Install the package in development mode
+RUN pipx install -e .
+
+# Generate test data
+RUN cd /app && ./test/api/generate_dummy_package.sh
+
+# Set environment variable to indicate we're in Docker
+ENV IN_DOCKER=1
+
+# Set working directory for tests
+WORKDIR /app/test/api
+
+# Run tests when container starts
+CMD ["./run_tests.sh"]

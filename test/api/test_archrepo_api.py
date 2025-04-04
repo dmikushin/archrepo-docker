@@ -139,46 +139,56 @@ class TestArchRepoAPI(unittest.TestCase):
         """Test publishing a package to the repository"""
         success, message = self.client.publish_package(str(self.dummy_pkg_path))
         if not success:
-            print(message)
-        self.assertTrue(success)
-        self.assertIn("Package", message)
+            self.fail(f"Failed to publish package. Error message: {message}")
+        self.assertIn("Package", message, f"Unexpected success message: {message}")
 
         # Verify package was added to repo
-        self.assertTrue((self.x86_64_dir / Path(self.dummy_pkg_path).name).exists())
+        pkg_file = self.x86_64_dir / Path(self.dummy_pkg_path).name
+        self.assertTrue(pkg_file.exists(), f"Package file not found at expected location: {pkg_file}")
 
     def test_list_packages(self):
         """Test listing packages in the repository"""
         # First publish a package
-        self.client.publish_package(str(self.dummy_pkg_path))
+        publish_success, publish_message = self.client.publish_package(str(self.dummy_pkg_path))
+        if not publish_success:
+            self.fail(f"Setup failed: Could not publish package before listing. Error: {publish_message}")
 
         # Then list packages
         success, packages = self.client.list_packages()
         if not success:
-            print(packages)
-        self.assertTrue(success)
-        self.assertTrue(isinstance(packages, list))
-        self.assertGreaterEqual(len(packages), 1)
+            self.fail(f"Failed to list packages. Error message: {packages}")
+
+        self.assertTrue(isinstance(packages, list),
+                      f"Expected packages to be a list, got {type(packages)}: {packages}")
+        self.assertGreaterEqual(len(packages), 1,
+                              f"Expected at least one package, got {len(packages)}: {packages}")
 
         # Verify our package is in the list
         pkg_names = [pkg['name'] for pkg in packages]
-        self.assertIn('testpackage', pkg_names)
+        self.assertIn('testpackage', pkg_names,
+                    f"Package 'testpackage' not found in list: {pkg_names}")
 
     def test_remove_package(self):
         """Test removing a package from the repository"""
         # First publish a package
-        self.client.publish_package(str(self.dummy_pkg_path))
+        publish_success, publish_message = self.client.publish_package(str(self.dummy_pkg_path))
+        if not publish_success:
+            self.fail(f"Setup failed: Could not publish package before removal. Error: {publish_message}")
 
         # Then remove it
         success, message = self.client.remove_package("testpackage")
         if not success:
-            print(message)
-        self.assertTrue(success)
-        self.assertIn("removed", message.lower())
+            self.fail(f"Failed to remove package. Error message: {message}")
+        self.assertIn("removed", message.lower(), f"Unexpected success message: {message}")
 
         # Verify package was removed
-        success, packages = self.client.list_packages()
+        list_success, packages = self.client.list_packages()
+        if not list_success:
+            self.fail(f"Failed to verify package removal. List packages error: {packages}")
+
         pkg_names = [pkg['name'] for pkg in packages]
-        self.assertNotIn('testpackage', pkg_names)
+        self.assertNotIn('testpackage', pkg_names,
+                       f"Package 'testpackage' still in repository after removal: {pkg_names}")
 
     def test_clean_repository(self):
         """Test cleaning the repository"""
@@ -195,33 +205,45 @@ class TestArchRepoAPI(unittest.TestCase):
                 f.write(f'DUMMY SIGNATURE {version}'.encode())
 
             # Publish it
-            self.client.publish_package(str(pkg_path))
+            pub_success, pub_message = self.client.publish_package(str(pkg_path))
+            if not pub_success:
+                self.fail(f"Setup failed: Could not publish package version {version}. Error: {pub_message}")
 
         # Clean the repository
         success, message = self.client.clean_repository()
         if not success:
-            print(message)
-        self.assertTrue(success)
-        self.assertIn("cleaned", message.lower())
+            self.fail(f"Failed to clean repository. Error message: {message}")
+        self.assertIn("cleaned", message.lower(), f"Unexpected success message: {message}")
 
         # Verify only one version remains
         files = list(self.x86_64_dir.glob('testpackage-*.pkg.tar.zst'))
-        self.assertEqual(len(files), 1)
-        self.assertTrue(str(files[0]).endswith('1.2-1-x86_64.pkg.tar.zst'))
+        self.assertEqual(len(files), 1,
+                       f"Expected only one package version after cleaning, found {len(files)}: {files}")
+
+        # Check that it's the latest version
+        self.assertTrue(str(files[0]).endswith('1.2-1-x86_64.pkg.tar.zst'),
+                      f"Expected to keep version 1.2, but found {files[0]}")
 
     def test_get_status(self):
         """Test getting repository status"""
         # First publish a package
-        self.client.publish_package(str(self.dummy_pkg_path))
+        publish_success, publish_message = self.client.publish_package(str(self.dummy_pkg_path))
+        if not publish_success:
+            self.fail(f"Setup failed: Could not publish package before getting status. Error: {publish_message}")
 
         # Get status
         success, status = self.client.get_status()
         if not success:
-            print(status)
-        self.assertTrue(success)
-        self.assertIsInstance(status, dict)
-        self.assertIn('Total packages', status)
-        self.assertGreaterEqual(int(status.get('Total packages', '0')), 1)
+            self.fail(f"Failed to get repository status. Error message: {status}")
+
+        self.assertIsInstance(status, dict, f"Expected status to be a dict, got {type(status)}: {status}")
+        self.assertIn('Total packages', status,
+                    f"Expected 'Total packages' in status, keys found: {list(status.keys())}")
+
+        # Verify package count
+        pkg_count = int(status.get('Total packages', '0'))
+        self.assertGreaterEqual(pkg_count, 1,
+                              f"Expected at least 1 package in status, got {pkg_count}: {status}")
 
 
 def create_docker_test_script():

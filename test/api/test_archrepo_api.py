@@ -37,14 +37,6 @@ class MockShellProcess:
             temp_input.flush()
 
             with tempfile.NamedTemporaryFile(mode='w+', delete=False) as temp_output:
-                # Run the pkg_shell.py script with the commands
-                cmd = [
-                    'bash',
-                    self.pkg_shell_path,
-                    # You may need to add arguments here to set up repo paths
-                    # Or modify pkg_shell.py to accept different paths for testing
-                ]
-
                 # Set environment variables for testing
                 env = os.environ.copy()
                 env['REPO_DIR'] = '/tmp/test_repo/x86_64'
@@ -52,7 +44,7 @@ class MockShellProcess:
                 env['TESTING'] = '1'
 
                 proc = subprocess.run(
-                    cmd,
+                    self.pkg_shell_path,
                     env=env,
                     input=input,
                     text=True,
@@ -146,6 +138,8 @@ class TestArchRepoAPI(unittest.TestCase):
     def test_publish_package(self):
         """Test publishing a package to the repository"""
         success, message = self.client.publish_package(str(self.dummy_pkg_path))
+        if not success:
+            print(message)
         self.assertTrue(success)
         self.assertIn("Package", message)
 
@@ -159,6 +153,8 @@ class TestArchRepoAPI(unittest.TestCase):
 
         # Then list packages
         success, packages = self.client.list_packages()
+        if not success:
+            print(packages)
         self.assertTrue(success)
         self.assertTrue(isinstance(packages, list))
         self.assertGreaterEqual(len(packages), 1)
@@ -174,6 +170,8 @@ class TestArchRepoAPI(unittest.TestCase):
 
         # Then remove it
         success, message = self.client.remove_package("testpackage")
+        if not success:
+            print(message)
         self.assertTrue(success)
         self.assertIn("removed", message.lower())
 
@@ -201,6 +199,8 @@ class TestArchRepoAPI(unittest.TestCase):
 
         # Clean the repository
         success, message = self.client.clean_repository()
+        if not success:
+            print(message)
         self.assertTrue(success)
         self.assertIn("cleaned", message.lower())
 
@@ -216,6 +216,8 @@ class TestArchRepoAPI(unittest.TestCase):
 
         # Get status
         success, status = self.client.get_status()
+        if not success:
+            print(status)
         self.assertTrue(success)
         self.assertIsInstance(status, dict)
         self.assertIn('Total packages', status)

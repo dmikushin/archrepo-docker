@@ -22,7 +22,7 @@ class PackageRepositoryShell:
         """Initialize the shell with configuration and required directories"""
         # Configuration from environment variables with defaults
         self.repo_dir = os.environ.get("REPO_DIR", "/srv/repo/x86_64")
-        self.db_name = os.environ.get("DB_NAME", "repo.db.tar.gz")
+        self.db_name = os.environ.get("DB_NAME", "repo.db.tar.zst")
         self.upload_dir = os.environ.get("UPLOAD_DIR", os.path.expanduser("~/uploads"))
         self.history_file = os.environ.get("HISTORY_FILE", os.path.expanduser("~/.pkg_shell_history"))
         self.error_log_file = os.environ.get("ERROR_LOG_FILE", os.path.expanduser("~/.pkg_shell_errors.log"))
@@ -221,22 +221,22 @@ class PackageRepositoryShell:
         os.chdir(self.repo_dir)
 
         try:
-            # Check if package exists in database using the configured archrepo repository
+            # Check if package exists in database using the configured repo repository
             result = subprocess.run(
-                ["pacman", "-Syl", "archrepo"],
+                ["pacman", "-Syl", "repo"],
                 capture_output=True,
                 text=True
             )
 
             if result.returncode != 0:
                 error_msg = self.log_error(cmd, "Error checking repository contents",
-                                         f"Command: pacman -Syl archrepo, "
+                                         f"Command: pacman -Syl repo, "
                                          f"Return code: {result.returncode}, "
                                          f"Stderr: {result.stderr}")
                 print(error_msg)
                 return False
 
-            if not any(re.search(rf"\barchrepo\s+{re.escape(pkg_name)}\b", line) for line in result.stdout.splitlines()):
+            if not any(re.search(rf"\brepo\s+{re.escape(pkg_name)}\b", line) for line in result.stdout.splitlines()):
                 error_msg = self.log_error(cmd, f"Package not found in repository: {pkg_name}",
                                          f"Available packages: {result.stdout}")
                 print(error_msg)
@@ -300,16 +300,16 @@ class PackageRepositoryShell:
         os.chdir(self.repo_dir)
 
         try:
-            # Use pacman -Syl archrepo with the properly configured repository
+            # Use pacman -Syl repo with the properly configured repository
             result = subprocess.run(
-                ["pacman", "-Syl", "archrepo"],
+                ["pacman", "-Syl", "repo"],
                 capture_output=True,
                 text=True
             )
 
             if result.returncode != 0:
                 error_msg = self.log_error(cmd, "Error listing packages",
-                                         f"Command: pacman -Syl archrepo, "
+                                         f"Command: pacman -Syl repo, "
                                          f"Return code: {result.returncode}, "
                                          f"Stderr: {result.stderr}")
                 print(error_msg)

@@ -2,9 +2,8 @@
 set -e
 
 # Allow pkguser to write to repository directory
-mkdir -p /srv/repo
-chown -R pkguser:pkguser /srv/repo
-chmod -R 700 /srv/repo
+mkdir -p /srv
+chown -R pkguser:pkguser /srv
 
 # Check if SSH key exists, if not create it
 SSH_KEY_FILE="/ssh-keys/id_ed25519"

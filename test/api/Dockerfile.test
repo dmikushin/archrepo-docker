@@ -37,8 +37,8 @@ RUN touch /tmp/pkg_shell_test_errors.log \
     && ln -sf /tmp/pkg_shell_test_errors.log /tmp/logs/ \
     && ln -sf /tmp/pkg_shell_direct_test_errors.log /tmp/logs/
 
-# Install Python files in Python path
-RUN cp /app/pkg_shell.py /usr/lib/python$(python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")/site-packages/
+# Add our local repository to the existing pacman.conf
+RUN echo -e "\n# Add our local repository\n[repo]\nSigLevel = Optional TrustAll\nServer = file:///srv/repo/\$arch" >> /etc/pacman.conf
 
 ENV PATH=$PATH:/root/.local/bin
 

@@ -40,7 +40,7 @@ class DirectConnection:
             universal_newlines=True,
             env={
                 "REPO_DIR": "/tmp/test_repo/x86_64",
-                "DB_NAME": "repo.db.tar.gz",
+                "DB_NAME": "repo.db.tar.zst",
                 "UPLOAD_DIR": "/tmp/uploads",
                 "HISTORY_FILE": "/tmp/pkg_shell_test_history",
                 "ERROR_LOG_FILE": "/tmp/pkg_shell_direct_test_errors.log",

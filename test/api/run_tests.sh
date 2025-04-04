@@ -18,7 +18,7 @@ echo -e "Running tests in container..."
 
 # Mount a volume for logs
 mkdir -p ${REPO_ROOT}/test/api/logs
-docker run --rm -v /tmp/logs:/tmp/logs archrepo-test
+docker run --rm -v ./logs:/tmp/logs archrepo-test
 
 # Display logs if they exist and are not empty
 if [ -s /tmp/logs/pkg_shell_test_errors.log ] || [ -s /tmp/logs/pkg_shell_direct_test_errors.log ]; then

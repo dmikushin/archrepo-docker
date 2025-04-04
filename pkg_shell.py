@@ -221,22 +221,22 @@ class PackageRepositoryShell:
         os.chdir(self.repo_dir)
 
         try:
-            # Check if package exists in database
+            # Check if package exists in database using the configured archrepo repository
             result = subprocess.run(
-                ["pacman", "-Sl", "custom"],
+                ["pacman", "-Syl", "archrepo"],
                 capture_output=True,
                 text=True
             )
 
             if result.returncode != 0:
                 error_msg = self.log_error(cmd, "Error checking repository contents",
-                                         f"Command: pacman -Sl custom, "
+                                         f"Command: pacman -Syl archrepo, "
                                          f"Return code: {result.returncode}, "
                                          f"Stderr: {result.stderr}")
                 print(error_msg)
                 return False
 
-            if not any(re.search(rf"\bcustom\s+{re.escape(pkg_name)}\b", line) for line in result.stdout.splitlines()):
+            if not any(re.search(rf"\barchrepo\s+{re.escape(pkg_name)}\b", line) for line in result.stdout.splitlines()):
                 error_msg = self.log_error(cmd, f"Package not found in repository: {pkg_name}",
                                          f"Available packages: {result.stdout}")
                 print(error_msg)
@@ -300,15 +300,16 @@ class PackageRepositoryShell:
         os.chdir(self.repo_dir)
 
         try:
+            # Use pacman -Syl archrepo with the properly configured repository
             result = subprocess.run(
-                ["pacman", "-Sl", "custom"],
+                ["pacman", "-Syl", "archrepo"],
                 capture_output=True,
                 text=True
             )
 
             if result.returncode != 0:
                 error_msg = self.log_error(cmd, "Error listing packages",
-                                         f"Command: pacman -Sl custom, "
+                                         f"Command: pacman -Syl archrepo, "
                                          f"Return code: {result.returncode}, "
                                          f"Stderr: {result.stderr}")
                 print(error_msg)

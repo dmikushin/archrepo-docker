@@ -3,7 +3,7 @@
 test_direct_api.py - Direct test suite for ArchRepo API
 
 This test suite connects the archrepo.api.ArchRepoClient directly to
-the mock_pkg_shell.py script without using SSH/network connections.
+the pkg_shell.py script without using SSH/network connections.
 It implements a complete test harness for all API functions without
 requiring network connectivity between client and server.
 """
@@ -23,7 +23,7 @@ from archrepo.api import ArchRepoClient
 
 
 class DirectConnection:
-    """Direct connection to mock_pkg_shell.py instead of SSH"""
+    """Direct connection to pkg_shell.py instead of SSH"""
 
     def __init__(self, shell_script, real_popen):
         self.shell_script = shell_script
@@ -42,6 +42,7 @@ class DirectConnection:
                 "REPO_DIR": "/tmp/test_repo/x86_64",
                 "DB_NAME": "repo.db.tar.gz",
                 "UPLOAD_DIR": "/tmp/uploads",
+                "HISTORY_FILE": "/tmp/pkg_shell_test_history",
                 "PATH": os.environ.get("PATH")
             }
         )
@@ -66,16 +67,11 @@ class TestDirectArchRepoAPI(unittest.TestCase):
         cls.x86_64_dir.mkdir(parents=True, exist_ok=True)
         cls.uploads_dir.mkdir(parents=True, exist_ok=True)
 
-        # Path to the mock shell script
-        cls.mock_shell = Path(__file__).parent / 'mock_pkg_shell.py'
+        # Path to pkg_shell.py (main script, not mock)
+        cls.pkg_shell = Path(__file__).parent.parent.parent / 'pkg_shell.py'
 
         # Path to the dummy package
         cls.dummy_pkg = Path(__file__).parent / 'fixtures/test-package-1.0.0-1-x86_64.pkg.tar.zst'
-
-        # Initialize repo if needed
-        if not (cls.x86_64_dir / 'repo.db.tar.gz').exists():
-            subprocess.run(['repo-add', str(cls.x86_64_dir / 'repo.db.tar.gz')],
-                          check=True)
 
         # Ensure test package exists
         if not cls.dummy_pkg.exists():
@@ -99,7 +95,7 @@ class TestDirectArchRepoAPI(unittest.TestCase):
         self.mock_popen = self.popen_patcher.start()
 
         # Configure the mock to return our DirectConnection instance
-        self.direct_connection = DirectConnection(self.mock_shell, self.real_popen)
+        self.direct_connection = DirectConnection(self.pkg_shell, self.real_popen)
         self.mock_popen.return_value = self.direct_connection
 
     def tearDown(self):

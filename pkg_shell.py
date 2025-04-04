@@ -18,15 +18,19 @@ class PackageRepositoryShell:
 
     def __init__(self):
         """Initialize the shell with configuration and required directories"""
-        # Configuration
+        # Configuration from environment variables with defaults
         self.repo_dir = os.environ.get("REPO_DIR", "/srv/repo/x86_64")
         self.db_name = os.environ.get("DB_NAME", "repo.db.tar.gz")
-        self.history_file = os.path.expanduser("~/.pkg_shell_history")
-        self.upload_dir = os.path.expanduser("~/uploads")
+        self.upload_dir = os.environ.get("UPLOAD_DIR", os.path.expanduser("~/uploads"))
+        self.history_file = os.environ.get("HISTORY_FILE", os.path.expanduser("~/.pkg_shell_history"))
 
         # Create required directories
+        os.makedirs(self.repo_dir, exist_ok=True)
         os.makedirs(self.upload_dir, exist_ok=True)
         Path(self.history_file).touch(exist_ok=True)
+
+        # Initialize repository database if it doesn't exist
+        self._initialize_repo_database()
 
     def show_welcome(self):
         """Display welcome message"""
@@ -484,6 +488,23 @@ class PackageRepositoryShell:
 
             self.process_command(cmd, args)
             print()  # Empty line after each command
+
+    def _initialize_repo_database(self):
+        """Initialize repository database if it doesn't exist"""
+        db_path = os.path.join(self.repo_dir, self.db_name)
+        if not os.path.exists(db_path):
+            print(f"Initializing empty repository database at {db_path}...")
+            current_dir = os.getcwd()
+            try:
+                os.chdir(self.repo_dir)
+                subprocess.run(["repo-add", self.db_name], check=True)
+                print("Repository database initialized successfully.")
+            except subprocess.CalledProcessError as e:
+                print(f"Error initializing repository database: {e}")
+            except Exception as e:
+                print(f"Unexpected error initializing repository: {e}")
+            finally:
+                os.chdir(current_dir)
 
 
 if __name__ == "__main__":

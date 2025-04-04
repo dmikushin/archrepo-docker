@@ -6,13 +6,6 @@ mkdir -p /srv/repo
 chown -R pkguser:pkguser /srv/repo
 chmod -R 700 /srv/repo
 
-# Initialize repository if it's empty
-if [ ! -f /srv/repo/x86_64/repo.db.tar.gz ]; then
-    echo "Initializing empty repository..."
-    sudo -u pkguser mkdir -p /srv/repo/x86_64
-    sudo -u pkguser repo-add /srv/repo/x86_64/repo.db.tar.gz
-fi
-
 # Check if SSH key exists, if not create it
 SSH_KEY_FILE="/ssh-keys/id_ed25519"
 SSH_PUB_KEY_FILE="/ssh-keys/id_ed25519.pub"

@@ -132,6 +132,7 @@ class PackageRepositoryShell:
             return False
 
         # Check if package exists in current location or repo
+        pkg_path = os.path.join(self.upload_dir, pkg_path)
         pkg_exists = os.path.isfile(pkg_path)
         repo_pkg_path = os.path.join(self.repo_dir, os.path.basename(pkg_path))
         repo_pkg_exists = os.path.isfile(repo_pkg_path)

@@ -124,7 +124,7 @@ class ArchRepoClient:
                 commands = self._encode_and_send_file(commands, signature_path, signature_filename)
 
             # Add the package to the repo
-            commands.append(f"add /home/pkguser/uploads/{filename}")
+            commands.append(f"add {filename}")
 
             # Run the commands interactively
             return_code, stdout, stderr = self._run_ssh_interactive(commands)

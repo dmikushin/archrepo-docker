@@ -18,7 +18,8 @@ RUN pacman -Syu --noconfirm && \
 WORKDIR /app
 RUN mkdir -p /app/test/api/fixtures \
     && mkdir -p /tmp/test_repo/x86_64 \
-    && mkdir -p /tmp/uploads
+    && mkdir -p /tmp/uploads \
+    && mkdir -p /tmp/logs
 
 # Copy the files from the project
 COPY . /app/
@@ -27,6 +28,14 @@ COPY . /app/
 RUN chmod +x /app/test/api/generate_dummy_package.sh \
     && chmod +x /app/pkg_shell.py \
     && chmod +x /app/test/api/run_tests.sh
+
+# Create and set permissions for error log files
+RUN touch /tmp/pkg_shell_test_errors.log \
+    && touch /tmp/pkg_shell_direct_test_errors.log \
+    && chmod 666 /tmp/pkg_shell_test_errors.log \
+    && chmod 666 /tmp/pkg_shell_direct_test_errors.log \
+    && ln -sf /tmp/pkg_shell_test_errors.log /tmp/logs/ \
+    && ln -sf /tmp/pkg_shell_direct_test_errors.log /tmp/logs/
 
 # Install Python files in Python path
 RUN cp /app/pkg_shell.py /usr/lib/python$(python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")/site-packages/
@@ -44,6 +53,9 @@ ENV IN_DOCKER=1
 
 # Set working directory for tests
 WORKDIR /app/test/api
+
+# Create volume for logs
+VOLUME ["/tmp/logs"]
 
 # Run tests when container starts
 CMD ["./run_tests.sh"]

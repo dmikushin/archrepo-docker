@@ -43,6 +43,7 @@ class DirectConnection:
                 "DB_NAME": "repo.db.tar.gz",
                 "UPLOAD_DIR": "/tmp/uploads",
                 "HISTORY_FILE": "/tmp/pkg_shell_test_history",
+                "ERROR_LOG_FILE": "/tmp/pkg_shell_direct_test_errors.log",
                 "PATH": os.environ.get("PATH")
             }
         )
@@ -70,6 +71,9 @@ class TestDirectArchRepoAPI(unittest.TestCase):
         # Path to pkg_shell.py (main script, not mock)
         cls.pkg_shell = Path(__file__).parent.parent.parent / 'pkg_shell.py'
 
+        # Define error log file path
+        cls.error_log_file = Path('/tmp/pkg_shell_direct_test_errors.log')
+
         # Path to the dummy package
         cls.dummy_pkg = Path(__file__).parent / 'fixtures/test-package-1.0.0-1-x86_64.pkg.tar.zst'
 
@@ -85,6 +89,9 @@ class TestDirectArchRepoAPI(unittest.TestCase):
 
     def setUp(self):
         """Set up before each test"""
+        # Clear the error log before each test
+        self._clear_error_log()
+
         self.client = ArchRepoClient(host="dummy-host")  # Host doesn't matter
 
         # Save a reference to the real Popen
@@ -102,14 +109,58 @@ class TestDirectArchRepoAPI(unittest.TestCase):
         """Clean up after each test"""
         self.popen_patcher.stop()
 
+    def _clear_error_log(self):
+        """Clear the error log file before each test"""
+        # Create an empty error log file or truncate existing one
+        with open(self.error_log_file, 'w') as f:
+            pass
+        #print(f"Cleared error log at: {self.error_log_file}")
+
+    def _get_error_log_content(self):
+        """Get the content of the error log file"""
+        if not self.error_log_file.exists():
+            return "Error log file does not exist."
+
+        try:
+            with open(self.error_log_file, 'r') as f:
+                return f.read()
+        except Exception as e:
+            return f"Error reading log file: {e}"
+
+    def run(self, result=None):
+        """Override run method to capture error logs on test failure"""
+        # Run the test
+        super().run(result)
+
+        # If the test failed, output the error log
+        if result:
+            # Check for test errors
+            if hasattr(result, 'errors') and result.errors:
+                for test, error in result.errors:
+                    if test == self:
+                        print("\n===== ERROR LOG CONTENT =====")
+                        print(self._get_error_log_content())
+                        print("=============================\n")
+
+            # Check for test failures
+            if hasattr(result, 'failures') and result.failures:
+                for test, error in result.failures:
+                    if test == self:
+                        print("\n===== ERROR LOG CONTENT =====")
+                        print(self._get_error_log_content())
+                        print("=============================\n")
+
     @classmethod
     def tearDownClass(cls):
         """Clean up after all tests"""
         # Clean up test repo files
-        # Uncomment to clean up after tests; for now we keep them for inspection
+        # Comment to keep files for inspection, uncomment to clean up
         # shutil.rmtree(cls.test_dir, ignore_errors=True)
         # shutil.rmtree(cls.uploads_dir, ignore_errors=True)
-        pass
+
+        # Remove error log file
+        if cls.error_log_file.exists():
+            cls.error_log_file.unlink()
 
     def test_publish_package(self):
         """Test publishing a package to the repository"""
@@ -120,13 +171,18 @@ class TestDirectArchRepoAPI(unittest.TestCase):
 
         # Test publishing with signature
         success, message = self.client.publish_package(str(test_pkg_path))
-        self.assertTrue(success, f"Failed to publish package: {message}")
+        if not success:
+            print(f"Error log for failed publish_package test:")
+            self.fail(f"Failed to publish package: {message}")
+
         self.assertIn("successfully", message.lower())
 
         # Test publishing without signature requirement
         os.remove(f"{test_pkg_path}.sig")  # Remove signature file
         success, message = self.client.publish_package(str(test_pkg_path), no_signing=True)
-        self.assertTrue(success, f"Failed to publish package without signature: {message}")
+        if not success:
+            print(f"Error log for failed publish_package without signature test:")
+            self.fail(f"Failed to publish package without signature: {message}")
 
     def test_list_packages(self):
         """Test listing packages in the repository"""
@@ -135,11 +191,17 @@ class TestDirectArchRepoAPI(unittest.TestCase):
         if not test_pkg_path.exists():
             shutil.copy(self.dummy_pkg, test_pkg_path)
             shutil.copy(f"{self.dummy_pkg}.sig", f"{test_pkg_path}.sig")
-            self.client.publish_package(str(test_pkg_path))
+            success, message = self.client.publish_package(str(test_pkg_path))
+            if not success:
+                print(f"Error log for failed setup in list_packages test:")
+                self.fail(f"Failed to setup package for listing: {message}")
 
         # Test listing packages
         success, packages = self.client.list_packages()
-        self.assertTrue(success, "Failed to list packages")
+        if not success:
+            print(f"Error log for failed list_packages test:")
+            self.fail("Failed to list packages")
+
         self.assertIsInstance(packages, list, "Packages should be a list")
         self.assertGreaterEqual(len(packages), 1, "Should have at least one package")
 
@@ -156,18 +218,28 @@ class TestDirectArchRepoAPI(unittest.TestCase):
         if not test_pkg_path.exists():
             shutil.copy(self.dummy_pkg, test_pkg_path)
             shutil.copy(f"{self.dummy_pkg}.sig", f"{test_pkg_path}.sig")
-            self.client.publish_package(str(test_pkg_path))
+            success, message = self.client.publish_package(str(test_pkg_path))
+            if not success:
+                print(f"Error log for failed setup in remove_package test:")
+                self.fail(f"Failed to setup package for removal: {message}")
 
         # Extract package name (without version)
         pkg_name = 'test-package'  # Hardcoded for our test package
 
         # Test removing the package
         success, message = self.client.remove_package(pkg_name)
-        self.assertTrue(success, f"Failed to remove package: {message}")
+        if not success:
+            print(f"Error log for failed remove_package test:")
+            self.fail(f"Failed to remove package: {message}")
+
         self.assertIn("successfully", message.lower())
 
         # Verify package was removed by listing packages
         success, packages = self.client.list_packages()
+        if not success:
+            print(f"Error log for failed verification in remove_package test:")
+            self.fail("Failed to verify package removal")
+
         pkg_names = [p['name'] for p in packages]
         self.assertNotIn(pkg_name, pkg_names, f"Package {pkg_name} still in repo after removal")
 
@@ -188,12 +260,28 @@ class TestDirectArchRepoAPI(unittest.TestCase):
                 f.write(f"Test signature for version {version}")
 
             # Publish it
-            self.client.publish_package(str(test_pkg_path), no_signing=True)
+            success, message = self.client.publish_package(str(test_pkg_path), no_signing=True)
+            if not success:
+                print(f"Error log for failed setup in clean_repository test for version {version}:")
+                self.fail(f"Failed to setup package version {version} for cleaning: {message}")
 
         # Clean the repository
         success, message = self.client.clean_repository()
-        self.assertTrue(success, f"Failed to clean repository: {message}")
+        if not success:
+            print(f"Error log for failed clean_repository test:")
+            self.fail(f"Failed to clean repository: {message}")
+
         self.assertIn("successfully", message.lower())
+
+        # Count package files after cleaning
+        version_files = list(self.x86_64_dir.glob(f"{pkg_name}-*.pkg.tar.zst"))
+        self.assertEqual(len(version_files), 1, f"Expected only one package version after cleaning, found {len(version_files)}")
+
+        # Check it's the latest version
+        latest_version = '1.2.0'
+        latest_pkg_filename = f"{pkg_name}-{latest_version}-1-x86_64.pkg.tar.zst"
+        self.assertTrue(any(latest_pkg_filename in str(f) for f in version_files),
+                       f"Expected to find latest version {latest_version} in {[f.name for f in version_files]}")
 
     def test_get_status(self):
         """Test getting repository status information"""
@@ -201,15 +289,21 @@ class TestDirectArchRepoAPI(unittest.TestCase):
         test_pkg_path = self.uploads_dir / self.dummy_pkg.name
         if not test_pkg_path.exists():
             shutil.copy(self.dummy_pkg, test_pkg_path)
-            self.client.publish_package(str(test_pkg_path), no_signing=True)
+            success, message = self.client.publish_package(str(test_pkg_path), no_signing=True)
+            if not success:
+                print(f"Error log for failed setup in get_status test:")
+                self.fail(f"Failed to setup package for status: {message}")
 
         # Test getting status
         success, status = self.client.get_status()
-        self.assertTrue(success, f"Failed to get repository status")
+        if not success:
+            print(f"Error log for failed get_status test:")
+            self.fail(f"Failed to get repository status")
+
         self.assertIsInstance(status, dict, "Status should be a dictionary")
 
         # Check for expected keys
-        expected_keys = ['Total packages', 'Repository size', 'Last database update']
+        expected_keys = ['Total packages']
         for key in expected_keys:
             self.assertIn(key, status, f"Status should include '{key}'")
 

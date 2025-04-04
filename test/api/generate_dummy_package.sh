@@ -4,7 +4,7 @@
 set -e
 
 # Directory setup
-TEST_DIR="$(pwd)/test/api"
+TEST_DIR="$(pwd)"
 mkdir -p "${TEST_DIR}/fixtures"
 cd "${TEST_DIR}/fixtures"
 

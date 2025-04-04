@@ -10,6 +10,7 @@ Setup your custom ArchLinux package repository and manage it using a Python API.
 2. Build and start the container:
 
    ```bash
+   docker build -t archrepo .
    docker-compose up -d
    ```
 

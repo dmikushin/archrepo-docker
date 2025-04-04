@@ -7,17 +7,15 @@ This directory contains a comprehensive test suite for the ArchRepo Python API. 
 The test suite includes:
 
 - **Direct API Tests**: Tests that connect directly to the package shell without using SSH or network connections
-- **Mock Shell Script**: A mock version of the `pkg_shell.py` that simulates repository operations for testing
 - **Dummy Package Generator**: A script that creates test .pkg.tar.zst files with signatures
 - **Docker Test Environment**: A containerized test environment based on archlinux:base
 
 ## Files
 
 - `test_direct_api.py` - Main test script that tests all API functions
-- `mock_pkg_shell.py` - Mock shell script that simulates the package repository shell
 - `generate_dummy_package.sh` - Script that creates test packages for testing
 - `run_tests.sh` - Script that executes all tests (locally or in Docker)
-- `Dockerfile.test` - Docker configuration for the test environment
+- `Dockerfile` - Docker configuration for the test environment
 - `fixtures/` - Directory for test packages and data
 
 ## Running Tests
@@ -28,35 +26,18 @@ Running tests is simple - just execute the `run_tests.sh` script, which provides
 # Navigate to the test directory
 cd test/api
 
-# Make sure scripts are executable
-chmod +x *.sh
-
 # Run the tests
 ./run_tests.sh
 ```
 
 The script will:
-1. Ask if you want to run tests in Docker (recommended) or locally
-2. Set up the test environment automatically
-3. Execute all the tests
-4. Report the results with clear, colorized output
-
-### Docker Mode (Recommended)
-
-When choosing Docker mode, the script will:
 - Check if Docker is installed
 - Build the test Docker image automatically
 - Run the container with proper environment setup
 - Execute all tests in the isolated container
+- Report the testing result
 
 No additional setup is required - everything is handled by the script.
-
-### Local Mode
-
-If you prefer to run tests directly on your system:
-- Requires Arch Linux with all dependencies installed
-- The script will check for required tools
-- Tests will run directly on your local system
 
 ## Test Coverage
 
@@ -101,14 +82,4 @@ To add new tests:
 
 1. Add test methods to the `TestDirectArchRepoAPI` class in `test_direct_api.py`
 2. Follow the naming convention `test_*` for new test methods
-3. If needed, add supporting functions to `mock_pkg_shell.py`
 
-## Requirements
-
-- For Docker mode: Docker installed and running
-- For local mode:
-  - Python 3.6+
-  - Arch Linux
-  - Base development tools (`pacman -S base-devel`)
-  - Python testing packages (`pip install pytest`)
-  - Pacman contrib tools (`pacman -S pacman-contrib`)

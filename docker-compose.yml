@@ -2,7 +2,7 @@ version: '3'
 
 services:
   archrepo:
-    build: .
+    image: archrepo
     ports:
       - "8080:8080"  # Web server for packages
       - "2222:2222"  # SSH for uploads

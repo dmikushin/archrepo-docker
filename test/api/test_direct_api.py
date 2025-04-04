@@ -69,7 +69,7 @@ class TestDirectArchRepoAPI(unittest.TestCase):
         cls.uploads_dir.mkdir(parents=True, exist_ok=True)
 
         # Path to pkg_shell.py (main script, not mock)
-        cls.pkg_shell = Path(__file__).parent.parent.parent / 'pkg_shell.py'
+        cls.pkg_shell = 'pkg_shell'
 
         # Define error log file path
         cls.error_log_file = Path('/tmp/pkg_shell_direct_test_errors.log')

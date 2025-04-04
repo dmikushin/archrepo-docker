@@ -35,9 +35,6 @@ class PackageRepositoryShell:
         os.makedirs(self.upload_dir, exist_ok=True)
         Path(self.history_file).touch(exist_ok=True)
 
-        # Initialize repository database if it doesn't exist
-        self._initialize_repo_database()
-
     def _setup_logging(self):
         """Set up logging configuration"""
         # Create a logger
@@ -762,35 +759,6 @@ class PackageRepositoryShell:
                 error_msg = self.log_error("process_stdin", f"Unexpected error processing input",
                                         traceback.format_exc())
                 print(error_msg)
-
-    def _initialize_repo_database(self):
-        """Initialize repository database if it doesn't exist"""
-        db_path = os.path.join(self.repo_dir, self.db_name)
-        if not os.path.exists(db_path):
-            print(f"Initializing empty repository database at {db_path}...")
-            current_dir = os.getcwd()
-            try:
-                os.chdir(self.repo_dir)
-                process = subprocess.run(
-                    ["repo-add", self.db_name],
-                    check=True,
-                    capture_output=True,
-                    text=True
-                )
-                print("Repository database initialized successfully.")
-                self.logger.info("Repository database initialized successfully")
-            except subprocess.CalledProcessError as e:
-                error_msg = self.log_error("initialize_repo", f"Error initializing repository database",
-                                         f"Command: repo-add {self.db_name}, "
-                                         f"Return code: {e.returncode}, "
-                                         f"Stdout: {e.stdout}, Stderr: {e.stderr}")
-                print(error_msg)
-            except Exception as e:
-                error_msg = self.log_error("initialize_repo", f"Unexpected error initializing repository",
-                                         traceback.format_exc())
-                print(error_msg)
-            finally:
-                os.chdir(current_dir)
 
 if __name__ == "__main__":
     shell = PackageRepositoryShell()

@@ -1,9 +1,27 @@
 #!/bin/bash
 set -e
 
+# Repository configuration
+REPO_DIR="/srv/repo/x86_64"
+DB_NAME="repo.db.tar.zst"
+UPLOAD_DIR="/home/pkguser/uploads"
+HISTORY_FILE="/home/pkguser/.pkg_shell_history"
+ERROR_LOG_FILE="/home/pkguser/.pkg_shell_errors.log"
+
+# Export variables to environment so pkg_shell.py can access them
+export REPO_DIR
+export DB_NAME
+export UPLOAD_DIR
+export HISTORY_FILE
+export ERROR_LOG_FILE
+
 # Allow pkguser to write to repository directory
 mkdir -p /srv
 chown -R pkguser:pkguser /srv
+
+# Create repository directory structure
+mkdir -p "$REPO_DIR"
+chown -R pkguser:pkguser "$REPO_DIR"
 
 # Check if SSH key exists, if not create it
 SSH_KEY_FILE="/ssh-keys/id_ed25519"
@@ -29,10 +47,20 @@ chmod +x /usr/local/bin/pkg_shell
 chown root:root /usr/local/bin/pkg_shell
 
 # Initialize directories and permissions
-mkdir -p /home/pkguser/uploads
-touch /home/pkguser/.pkg_shell_history
+mkdir -p "$UPLOAD_DIR"
+touch "$HISTORY_FILE"
+touch "$ERROR_LOG_FILE"
 chown -R pkguser:pkguser /home/pkguser
-chmod 700 /home/pkguser/uploads
+chmod 700 "$UPLOAD_DIR"
+
+# Initialize repository database if it doesn't exist
+REPO_DB_PATH="$REPO_DIR/$DB_NAME"
+if [ ! -f "$REPO_DB_PATH" ]; then
+    echo "Initializing empty repository database..."
+    cd "$REPO_DIR"
+    sudo -u pkguser repo-add "$DB_NAME"
+    echo "Repository database initialized successfully."
+fi
 
 # Start nginx in background
 echo "Starting nginx..."

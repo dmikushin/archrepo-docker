@@ -1,5 +1,5 @@
 #!/bin/bash
-# generate_dummy_package.sh - Creates a dummy Arch Linux package for testing
+# generate_dummy_package.sh - Creates a dummy Arch Linux package for testing using quasipkg
 
 set -e
 
@@ -14,60 +14,36 @@ PKG_REL="1"
 ARCH="x86_64"
 PKG_FILENAME="${PKG_NAME}-${PKG_VER}-${PKG_REL}-${ARCH}.pkg.tar.zst"
 
-# Create package structure
-echo "Creating dummy package structure..."
-mkdir -p "pkg/usr/bin"
-mkdir -p "pkg/usr/share/doc/${PKG_NAME}"
+echo "Creating dummy package using quasipkg..."
 
-# Add a dummy executable
-cat > "pkg/usr/bin/${PKG_NAME}" << EOF
-#!/bin/sh
-echo "This is a dummy test package for archrepo testing"
-exit 0
-EOF
-chmod +x "pkg/usr/bin/${PKG_NAME}"
+# Create package with quasipkg
+quasipkg --name "${PKG_NAME}" \
+         --pkgversion "${PKG_VER}" \
+         --release "${PKG_REL}" \
+         --description "A dummy package for archrepo testing" \
+         --provides "${PKG_NAME}" \
+         --arch "${ARCH}" \
+         --license "MIT" \
+         --url "https://github.com/dmikushin/archrepo-docker" \
+         --output-dir "test-pkg-build"
 
-# Add documentation
-cat > "pkg/usr/share/doc/${PKG_NAME}/README" << EOF
-# ${PKG_NAME}
+# Build the package using quasipkg (the package should be built in the output-dir)
+cd "test-pkg-build"
+makepkg -f
 
-This is a dummy package created for testing the archrepo API.
-It doesn't actually do anything useful.
-
-Version: ${PKG_VER}
-Release: ${PKG_REL}
-EOF
-
-# Create .PKGINFO file
-cat > "pkg/.PKGINFO" << EOF
-pkgname = ${PKG_NAME}
-pkgver = ${PKG_VER}-${PKG_REL}
-pkgdesc = A dummy package for archrepo testing
-url = https://github.com/dmikushin/archrepo-docker
-builddate = $(date +%s)
-packager = Test Script <test@example.com>
-size = 0
-arch = ${ARCH}
-license = MIT
-EOF
-
-# Create a compressed package using tar and zstd
-echo "Creating package archive..."
-cd pkg
-tar -cf "../${PKG_NAME}.tar" ./*
+# Copy the built package to fixtures directory
+cp *.pkg.tar.zst ../ || echo "Error: Failed to find built package"
 cd ..
-zstd -19 "${PKG_NAME}.tar" -o "${PKG_FILENAME}"
-rm "${PKG_NAME}.tar"
 
-# Create a dummy signature file
+# Create a dummy signature file (since quasipkg doesn't handle signatures)
 echo "Creating dummy signature file..."
 echo "THIS IS A DUMMY SIGNATURE FOR TESTING PURPOSES ONLY" > "${PKG_FILENAME}.sig"
 
 echo "Package created: ${PKG_FILENAME}"
 echo "Signature created: ${PKG_FILENAME}.sig"
 
-# Clean up temporary files
-rm -rf pkg
+# Clean up temporary build files
+rm -rf "test-pkg-build"
 
 # Show package info
 echo "Package details:"

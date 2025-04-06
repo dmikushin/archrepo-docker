@@ -1,5 +1,11 @@
 FROM archrepo
 
+# Install Python pip and Git for package installation
+RUN pacman -Sy --noconfirm python-pipx git
+
+# Install quasipkg
+RUN pipx install --global git+https://github.com/dmikushin/quasipkg.git
+
 # Create test-specific directories and files
 RUN mkdir -p /tmp/test_repo/x86_64 \
     && mkdir -p /tmp/uploads \

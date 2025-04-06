@@ -63,6 +63,8 @@ if [ "${TEST_MODE}" = "1" ]; then
     echo -e "${GREEN}         ArchRepo API Test Suite Runner                ${NC}"
     echo -e "${GREEN}=======================================================${NC}"
 
+    mkdir fixtures
+    chown pkguser:pkguser fixtures
     TEST_RESULT=0
     python ./test_direct_api.py || TEST_RESULT=$?
 

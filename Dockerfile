@@ -27,9 +27,6 @@ RUN useradd -m -s /usr/local/bin/pkg_shell pkguser && \
     chmod 700 /home/pkguser/.ssh && \
     chmod 600 /home/pkguser/.ssh/authorized_keys
 
-# Add our local repository to the existing pacman.conf
-RUN echo -e "\n# Add our local repository\n[repo]\nSigLevel = Optional TrustAll\nServer = file:///srv/repo/\$arch" >> /etc/pacman.conf
-
 # Configure NGINX
 COPY nginx.conf /etc/nginx/nginx.conf
 

@@ -45,6 +45,12 @@ if [ ! -f "$REPO_DB_PATH" ]; then
     echo "Repository database initialized successfully."
 fi
 
+# Add our local repository to the existing pacman.conf
+echo -e "\n# Add our local repository\n[repo]\nSigLevel = Optional TrustAll\nServer = file:///srv/repo/\$arch" >> /etc/pacman.conf
+
+# TODO Deactivate existing repositories,
+# which we no longer need to update
+
 if [ "${TEST_MODE}" = "1" ]; then
     # Colors for better output
     GREEN='\033[0;32m'

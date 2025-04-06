@@ -148,10 +148,10 @@ class PackageRepositoryShell:
         if not repo_pkg_exists:
             print("Copying package to repository...")
             try:
-                subprocess.run(["cp", pkg_path, self.repo_dir], check=True)
+                subprocess.run(["mv", pkg_path, self.repo_dir], check=True)
             except subprocess.CalledProcessError as e:
-                error_msg = self.log_error(cmd, f"Failed to copy package to repository",
-                                         f"Command: cp {pkg_path} {self.repo_dir}, Error: {e}, Return code: {e.returncode}")
+                error_msg = self.log_error(cmd, f"Failed to move package to repository",
+                                         f"Command: mv {pkg_path} {self.repo_dir}, Error: {e}, Return code: {e.returncode}")
                 print(error_msg)
                 return False
 
@@ -164,17 +164,17 @@ class PackageRepositoryShell:
             if os.path.isfile(sig_path):
                 print("Copying signature file to repository...")
                 try:
-                    subprocess.run(["cp", sig_path, f"{self.repo_dir}/{pkg_file}.sig"], check=True)
+                    subprocess.run(["mv", sig_path, f"{self.repo_dir}/{pkg_file}.sig"], check=True)
                 except subprocess.CalledProcessError as e:
-                    self.logger.warning(f"Failed to copy signature file: {e}")
-                    print(f"Warning: Failed to copy signature file: {e}")
+                    self.logger.warning(f"Failed to move signature file: {e}")
+                    print(f"Warning: Failed to move signature file: {e}")
             elif os.path.isfile(upload_sig_path):
                 print("Copying signature file from uploads to repository...")
                 try:
-                    subprocess.run(["cp", upload_sig_path, f"{self.repo_dir}/{pkg_file}.sig"], check=True)
+                    subprocess.run(["mv", upload_sig_path, f"{self.repo_dir}/{pkg_file}.sig"], check=True)
                 except subprocess.CalledProcessError as e:
-                    self.logger.warning(f"Failed to copy uploaded signature file: {e}")
-                    print(f"Warning: Failed to copy uploaded signature file: {e}")
+                    self.logger.warning(f"Failed to move uploaded signature file: {e}")
+                    print(f"Warning: Failed to move uploaded signature file: {e}")
         else:
             pkg_file = os.path.basename(pkg_path)
 
@@ -184,14 +184,14 @@ class PackageRepositoryShell:
         os.chdir(self.repo_dir)
 
         try:
-            process = subprocess.run(["repo-add", self.db_name, pkg_file],
+            process = subprocess.run(["repo-add", os.path.join(self.repo_dir, self.db_name), os.path.join(self.repo_dir, pkg_file)],
                                     check=True, capture_output=True, text=True)
             print("Package added successfully.")
             self.logger.info(f"Successfully added package: {pkg_file}")
             return True
         except subprocess.CalledProcessError as e:
             error_msg = self.log_error(cmd, f"Error adding package to repository",
-                                     f"Command: repo-add {self.db_name} {pkg_file}, "
+                                     f"Command: repo-add {os.path.join(self.repo_dir, self.db_name)} {os.path.join(self.repo_dir, pkg_file)}, "
                                      f"Return code: {e.returncode}, "
                                      f"Stdout: {e.stdout}, Stderr: {e.stderr}")
             print(error_msg)
@@ -376,7 +376,7 @@ class PackageRepositoryShell:
             pkg_files = list(Path(self.repo_dir).glob("*.pkg.tar.zst"))
             if pkg_files:
                 process = subprocess.run(
-                    ["repo-add", "-f", self.db_name] + [str(f) for f in pkg_files],
+                    ["repo-add", "-f", os.path.join(self.repo_dir, self.db_name)] + [str(f) for f in pkg_files],
                     check=True,
                     capture_output=True,
                     text=True
@@ -384,7 +384,7 @@ class PackageRepositoryShell:
             else:
                 # Create empty database if no packages exist
                 process = subprocess.run(
-                    ["repo-add", "-f", self.db_name],
+                    ["repo-add", "-f", os.path.join(self.repo_dir, self.db_name)],
                     check=True,
                     capture_output=True,
                     text=True

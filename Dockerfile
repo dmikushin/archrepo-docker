@@ -40,6 +40,13 @@ RUN mkdir -p /etc/dropbear && \
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# Repository configuration
+ENV REPO_DIR="/srv/repo/x86_64"
+ENV DB_NAME="repo.db.tar.zst"
+ENV UPLOAD_DIR="/home/pkguser/uploads"
+ENV HISTORY_FILE="/home/pkguser/.pkg_shell_history"
+ENV ERROR_LOG_FILE="/home/pkguser/.pkg_shell_errors.log"
+
 # Expose ports
 EXPOSE 8080 2222
 

@@ -1,20 +1,6 @@
 #!/bin/bash
 set -e
 
-# Repository configuration
-REPO_DIR="/srv/repo/x86_64"
-DB_NAME="repo.db.tar.zst"
-UPLOAD_DIR="/home/pkguser/uploads"
-HISTORY_FILE="/home/pkguser/.pkg_shell_history"
-ERROR_LOG_FILE="/home/pkguser/.pkg_shell_errors.log"
-
-# Export variables to environment so pkg_shell.py can access them
-export REPO_DIR
-export DB_NAME
-export UPLOAD_DIR
-export HISTORY_FILE
-export ERROR_LOG_FILE
-
 # Initialize directories and permissions
 mkdir -p "$UPLOAD_DIR"
 touch "$HISTORY_FILE"
@@ -42,7 +28,7 @@ if [ ! -f "$REPO_DB_PATH" ]; then
     pushd "$REPO_DIR"
     sudo -u pkguser repo-add "$DB_NAME"
     popd
-    echo "Repository database initialized successfully."
+    echo "Repository database initialized successfully at $REPO_DIR/$DB_NAME"
 fi
 
 # Add our local repository to the existing pacman.conf

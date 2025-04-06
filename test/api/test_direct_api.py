@@ -22,6 +22,50 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from archrepo.api import ArchRepoClient
 
 
+class CustomTestResult(unittest.TextTestResult):
+    """Custom test result class that includes error log in failure messages"""
+
+    def __init__(self, stream, descriptions, verbosity, error_log_file):
+        super().__init__(stream, descriptions, verbosity)
+        self.error_log_file = error_log_file
+
+    def _get_error_log_content(self):
+        """Get the content of the error log file"""
+        if not Path(self.error_log_file).exists():
+            return "Error log file does not exist."
+
+        try:
+            with open(self.error_log_file, 'r') as f:
+                return f.read().strip()
+        except Exception as e:
+            return f"Error reading log file: {e}"
+
+    def addFailure(self, test, err):
+        """Add failure with error log included"""
+        log_content = self._get_error_log_content()
+        if log_content != "":
+            err = (err[0], AssertionError(f"{str(err[1])}\n\n===== ERROR LOG =====\n{log_content}\n====================="), err[2])
+        super().addFailure(test, err)
+
+    def addError(self, test, err):
+        """Add error with error log included"""
+        log_content = self._get_error_log_content()
+        if log_content != "":
+            err = (err[0], type(err[1])(f"{str(err[1])}\n\n===== ERROR LOG =====\n{log_content}\n====================="), err[2])
+        super().addError(test, err)
+
+
+class CustomTestRunner(unittest.TextTestRunner):
+    """Custom test runner that uses our CustomTestResult"""
+
+    def __init__(self, error_log_file, **kwargs):
+        super().__init__(**kwargs)
+        self.error_log_file = error_log_file
+
+    def _makeResult(self):
+        return CustomTestResult(self.stream, self.descriptions, self.verbosity, self.error_log_file)
+
+
 class DirectConnection:
     """Direct connection to pkg_shell.py instead of SSH"""
 
@@ -105,10 +149,6 @@ class TestDirectArchRepoAPI(unittest.TestCase):
         self.direct_connection = DirectConnection(self.pkg_shell, self.real_popen)
         self.mock_popen.return_value = self.direct_connection
 
-        # Store current test name
-        self._current_test_name = self.id().split('.')[-1]
-        self._current_test_failed = False
-
     def tearDown(self):
         """Clean up after each test"""
         self.popen_patcher.stop()
@@ -118,43 +158,6 @@ class TestDirectArchRepoAPI(unittest.TestCase):
         # Create an empty error log file or truncate existing one
         with open(self.error_log_file, 'w') as f:
             pass
-        #print(f"Cleared error log at: {self.error_log_file}")
-
-    def _get_error_log_content(self):
-        """Get the content of the error log file"""
-        if not self.error_log_file.exists():
-            return "Error log file does not exist."
-
-        try:
-            with open(self.error_log_file, 'r') as f:
-                return f.read()
-        except Exception as e:
-            return f"Error reading log file: {e}"
-
-    def run(self, result=None):
-        """Override run method to capture error logs on test failure"""
-        # Run the test
-        super().run(result)
-
-        # If the test failed or had an error, output the error log
-        if result:
-            # Check for test errors
-            if hasattr(result, 'errors') and result.errors:
-                for test, error in result.errors:
-                    if test == self:
-                        print(f"\nError log for failed {self._current_test_name} test:")
-                        print("\n===== ERROR LOG CONTENT =====")
-                        print(self._get_error_log_content())
-                        print("=============================\n")
-
-            # Check for test failures
-            if hasattr(result, 'failures') and result.failures:
-                for test, error in result.failures:
-                    if test == self:
-                        print(f"\nError log for failed {self._current_test_name} test:")
-                        print("\n===== ERROR LOG CONTENT =====")
-                        print(self._get_error_log_content())
-                        print("=============================\n")
 
     @classmethod
     def tearDownClass(cls):
@@ -304,4 +307,9 @@ class TestDirectArchRepoAPI(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    # Use our custom test runner with the error log file path
+    runner = CustomTestRunner(
+        error_log_file='/tmp/pkg_shell_direct_test_errors.log',
+        verbosity=2
+    )
+    unittest.main(testRunner=runner)

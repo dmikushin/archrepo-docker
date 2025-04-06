@@ -58,7 +58,7 @@ if [ "${TEST_MODE}" = "1" ]; then
     echo -e "${GREEN}=======================================================${NC}"
 
     TEST_RESULT=0
-    python -m unittest discover || TEST_RESULT=$?
+    python ./test_direct_api.py || TEST_RESULT=$?
 
     # Check for errors in log files
     if [ -s /tmp/pkg_shell_test_errors.log ] || [ -s /tmp/pkg_shell_direct_test_errors.log ]; then

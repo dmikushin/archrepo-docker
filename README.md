@@ -131,4 +131,6 @@ For production use, consider these additional security enhancements:
 ## Maintenance
 
 - **Logs**: SSH command history is stored in `/home/pkguser/.pkg_shell_history`
-- **
+- **Backup**: The `repo-data` volume contains all your packages.
+- **Cleanup**: Use the `clean` command to remove old package versions.
+- **Monitoring**: Use the `status` command to check disk space usage and repository statistics.

@@ -16,7 +16,6 @@ The test suite includes:
 - `generate_dummy_package.sh` - Script that creates test packages for testing
 - `run_tests.sh` - Script that executes all tests (locally or in Docker)
 - `Dockerfile` - Docker configuration for the test environment
-- `fixtures/` - Directory for test packages and data
 
 ## Running Tests
 

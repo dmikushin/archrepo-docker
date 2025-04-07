@@ -484,7 +484,7 @@ class PackageRepositoryShell:
         args_parts = args.split(maxsplit=1)
         filename = args_parts[0] if args_parts else ""
         file_hash = args_parts[1] if len(args_parts) > 1 else None
-        
+
         cmd = f"receive {filename}"
 
         if not filename:
@@ -507,34 +507,38 @@ class PackageRepositoryShell:
         output_path = None
 
         try:
-            with tempfile.NamedTemporaryFile(mode='w+', delete=False) as b64file:
-                b64file_path = b64file.name
+            # Collect all base64 chunks in memory
+            base64_chunks = []
 
-                # Read input until we get the EOF marker
-                while True:
-                    try:
-                        line = input()
-                        if line == "EOF":
-                            break
-                        b64file.write(line + "\n")
-                    except EOFError:
-                        # Handle EOF in non-interactive mode
+            # Read input until we get the EOF marker
+            while True:
+                try:
+                    line = input()
+                    if line == "EOF":
                         break
+                    base64_chunks.append(line)
+                except EOFError:
+                    # Handle EOF in non-interactive mode
+                    break
+
+            # Combine all chunks without newlines
+            base64_data = ''.join(base64_chunks)
 
             # Decode the base64 data to the actual file
             output_path = os.path.join(self.upload_dir, filename)
 
             try:
-                with open(b64file_path, 'r') as b64file, open(output_path, 'wb') as outfile:
-                    base64_data = b64file.read()
-                    try:
-                        binary_data = base64.b64decode(base64_data)
-                    except base64.Error as e:
-                        error_msg = self.log_error(cmd, f"Invalid base64 data",
-                                               f"Base64 decode error: {e}")
-                        print(error_msg)
-                        return False
+                # Decode base64 data directly from memory
+                try:
+                    binary_data = base64.b64decode(base64_data)
+                except base64.Error as e:
+                    error_msg = self.log_error(cmd, f"Invalid base64 data",
+                                            f"Base64 decode error: {e}")
+                    print(error_msg)
+                    return False
 
+                # Write binary data to output file
+                with open(output_path, 'wb') as outfile:
                     outfile.write(binary_data)
             except IOError as e:
                 error_msg = self.log_error(cmd, f"File I/O error",
@@ -549,7 +553,7 @@ class PackageRepositoryShell:
                     import hashlib
                     with open(output_path, 'rb') as f:
                         calculated_hash = hashlib.sha512(f.read()).hexdigest()
-                    
+
                     if calculated_hash == file_hash:
                         print(f"SHA-512 hash verification: SUCCESS")
                     else:
@@ -562,7 +566,7 @@ class PackageRepositoryShell:
                         except:
                             pass
                         return False
-                
+
                 if is_signature:
                     print(f"Signature file received successfully: {filename}")
                 else:
@@ -585,7 +589,7 @@ class PackageRepositoryShell:
                 if not is_signature:
                     print(f"Use 'add {filename}' to add it to the repository")
 
-                self.logger.info(f"Successfully received file: {filename}")
+                self.logger.info(f"Successfully received file: {filename} of size {file_size} bytes")
                 return True
             else:
                 error_msg = self.log_error(cmd, "Failed to receive file",
@@ -597,13 +601,6 @@ class PackageRepositoryShell:
                                      traceback.format_exc())
             print(error_msg)
             return False
-        finally:
-            # Clean up the temporary base64 file
-            if b64file_path and os.path.exists(b64file_path):
-                try:
-                    os.unlink(b64file_path)
-                except Exception as e:
-                    self.logger.warning(f"Failed to clean up temporary file {b64file_path}: {e}")
 
     def log_command(self, command):
         """Log command to history file"""
@@ -648,7 +645,7 @@ class PackageRepositoryShell:
                                      traceback.format_exc())
             print(error_msg)
             return False
-    
+
     def main_loop(self):
         """Main interactive loop"""
         self.show_welcome()

@@ -574,15 +574,9 @@ class PackageRepositoryShell:
 
                 # Get file size
                 try:
-                    file_size_result = subprocess.run(
-                        ["du", "-h", output_path],
-                        capture_output=True,
-                        text=True,
-                        check=True
-                    )
-                    file_size = file_size_result.stdout.split()[0]
-                    print(f"Size: {file_size}")
-                except subprocess.CalledProcessError as e:
+                    file_size = os.path.getsize(output_path)
+                    print(f"Size: {file_size} bytes")
+                except Exception as e:
                     self.logger.warning(f"Failed to get file size: {e}")
                     print("Size: Unknown")
 

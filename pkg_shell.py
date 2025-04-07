@@ -548,6 +548,14 @@ class PackageRepositoryShell:
 
             # Check if the file was created successfully
             if os.path.isfile(output_path):
+                # Get file size
+                try:
+                    file_size = os.path.getsize(output_path)
+                    print(f"Size: {file_size} bytes")
+                except Exception as e:
+                    self.logger.warning(f"Failed to get file size: {e}")
+                    print("Size: Unknown")
+
                 # Verify file integrity with SHA-512 hash if provided
                 if file_hash:
                     import hashlib
@@ -567,23 +575,16 @@ class PackageRepositoryShell:
                             pass
                         return False
 
-                if is_signature:
-                    print(f"Signature file received successfully: {filename}")
+                    msg = f"Successfully received {'signature ' if is_signature else ''}file: {filename} of size {file_size} bytes with hash = {file_hash}"
+                    self.logger.info(msg)
+                    print(msg)
                 else:
-                    print(f"File received successfully: {filename}")
+                    msg = f"Successfully received {'signature ' if is_signature else ''}file: {filename} of size {file_size} bytes"
+                    self.logger.info(msg)
+                    print(msg)
 
-                # Get file size
-                try:
-                    file_size = os.path.getsize(output_path)
-                    print(f"Size: {file_size} bytes")
-                except Exception as e:
-                    self.logger.warning(f"Failed to get file size: {e}")
-                    print("Size: Unknown")
+                print(f"Use 'add {filename}' to add it to the repository")
 
-                if not is_signature:
-                    print(f"Use 'add {filename}' to add it to the repository")
-
-                self.logger.info(f"Successfully received file: {filename} of size {file_size} bytes")
                 return True
             else:
                 error_msg = self.log_error(cmd, "Failed to receive file",

@@ -502,8 +502,6 @@ class PackageRepositoryShell:
         print("Please paste the base64-encoded file content and end with a line containing only 'EOF'")
         print("Waiting for data...")
 
-        # Create a temporary file to store the base64 data
-        b64file_path = None
         output_path = None
 
         try:

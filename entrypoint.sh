@@ -52,6 +52,7 @@ if [ "${TEST_MODE}" = "1" ]; then
     mkdir fixtures
     chown pkguser:pkguser fixtures
     TEST_RESULT=0
+    #python ./test_direct_api.py --debug-on-failure || TEST_RESULT=$?
     python ./test_direct_api.py || TEST_RESULT=$?
 
     # Check for errors in log files

@@ -14,8 +14,10 @@ import unittest
 import subprocess
 import shutil
 import base64
+import argparse
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+import pty
 
 # Add parent directory to path so we can import archrepo
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -25,9 +27,11 @@ from archrepo.api import ArchRepoClient
 class CustomTestResult(unittest.TextTestResult):
     """Custom test result class that includes error log in failure messages"""
 
-    def __init__(self, stream, descriptions, verbosity, error_log_file):
+    def __init__(self, stream, descriptions, verbosity, error_log_file, debug_on_failure=False, real_popen=None):
         super().__init__(stream, descriptions, verbosity)
         self.error_log_file = error_log_file
+        self.debug_on_failure = debug_on_failure
+        self.real_popen = real_popen  # Store the reference to the real Popen
 
     def _get_error_log_content(self):
         """Get the content of the error log file"""
@@ -40,12 +44,45 @@ class CustomTestResult(unittest.TextTestResult):
         except Exception as e:
             return f"Error reading log file: {e}"
 
+    def _debug_failure(self, test, err, failure_type="ERROR"):
+        """Launch debug shell when a failure occurs"""
+        if self.debug_on_failure:
+            print(f"\n\n===== TEST {failure_type} =====")
+            print(f"Test: {test}")
+            print(f"Error: {err[1]}")
+            print("\nSystem state when failure occurred:")
+
+            # Temporarily restore the original subprocess.Popen
+            original_popen = subprocess.Popen
+            subprocess.Popen = self.real_popen
+
+            try:
+                subprocess.call(['ls', '-la', '/tmp/test_repo/x86_64'])
+                print("\nDropping into bash shell for debugging...")
+                print("Type 'exit' when finished to continue with the test suite.")
+
+                # Use pty to allocate a pseudo-terminal
+                pid, fd = pty.fork()
+                if pid == 0:
+                    # Child process
+                    os.execvp('bash', ['bash', '-i'])
+                else:
+                    # Parent process
+                    os.waitpid(pid, 0)
+
+                print("\nResuming test execution...")
+
+            finally:
+                # Restore our mocked version after debugging
+                subprocess.Popen = original_popen
+
     def addFailure(self, test, err):
         """Add failure with error log included"""
         log_content = self._get_error_log_content()
         if log_content != "":
             err = (err[0], AssertionError(f"{str(err[1])}\n\n===== ERROR LOG =====\n{log_content}\n====================="), err[2])
         super().addFailure(test, err)
+        self._debug_failure(test, err, "FAILED")
 
     def addError(self, test, err):
         """Add error with error log included"""
@@ -53,17 +90,21 @@ class CustomTestResult(unittest.TextTestResult):
         if log_content != "":
             err = (err[0], type(err[1])(f"{str(err[1])}\n\n===== ERROR LOG =====\n{log_content}\n====================="), err[2])
         super().addError(test, err)
+        self._debug_failure(test, err, "ERROR")
 
 
 class CustomTestRunner(unittest.TextTestRunner):
     """Custom test runner that uses our CustomTestResult"""
 
-    def __init__(self, error_log_file, **kwargs):
+    def __init__(self, error_log_file, debug_on_failure=False, real_popen=None, **kwargs):
         super().__init__(**kwargs)
         self.error_log_file = error_log_file
+        self.debug_on_failure = debug_on_failure
+        self.real_popen = real_popen
 
     def _makeResult(self):
-        return CustomTestResult(self.stream, self.descriptions, self.verbosity, self.error_log_file)
+        return CustomTestResult(self.stream, self.descriptions, self.verbosity,
+                               self.error_log_file, self.debug_on_failure, self.real_popen)
 
 
 class DirectConnection:
@@ -307,9 +348,31 @@ class TestDirectArchRepoAPI(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    # Use our custom test runner with the error log file path
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Run ArchRepo API tests")
+    parser.add_argument("--debug-on-failure", action="store_true",
+                        help="Drop into a bash shell when a test fails")
+
+    # Also support environment variable for CI or script usage
+    env_debug = os.environ.get('DEBUG_ON_FAILURE', '').lower() in ('true', '1', 'yes')
+
+    # Parse only the known arguments, leaving the rest for unittest.main()
+    args, unknown = parser.parse_known_args()
+
+    # Use either command line flag or environment variable
+    debug_on_failure = args.debug_on_failure or env_debug
+
+    # Update sys.argv to remove our custom arguments
+    sys.argv = [sys.argv[0]] + unknown
+
+    # Store reference to the real subprocess.Popen before any patches
+    real_popen = subprocess.Popen
+
+    # Use our custom test runner with the error log file path and real_popen reference
     runner = CustomTestRunner(
         error_log_file='/tmp/pkg_shell_direct_test_errors.log',
+        debug_on_failure=debug_on_failure,
+        real_popen=real_popen,
         verbosity=2
     )
     unittest.main(testRunner=runner)

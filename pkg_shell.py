@@ -87,8 +87,7 @@ class PackageRepositoryShell:
         print("  remove <package-name>           - Remove a package from the repository")
         print("  list                            - List all packages in the repository")
         print("  clean                           - Clean up old package versions")
-        print("  receive <filename>              - Receive a package file through the SSH connection")
-        print("  send <filename>                 - Send a file from the repository to the client")
+        print("  receive <filename> [sha512hash] - Receive a file through SSH with optional hash verification")
         print("  status                          - Show repository statistics")
         print("  errors                          - Show recent error logs")
         print("  help                            - Show this help message")
@@ -479,20 +478,27 @@ class PackageRepositoryShell:
         finally:
             os.chdir(current_dir)
 
-    def receive_file(self, filename):
-        """Receive a file through SSH"""
+    def receive_file(self, args):
+        """Receive a file through SSH with hash verification"""
+        # Parse args for filename and optional hash
+        args_parts = args.split(maxsplit=1)
+        filename = args_parts[0] if args_parts else ""
+        file_hash = args_parts[1] if len(args_parts) > 1 else None
+        
         cmd = f"receive {filename}"
 
         if not filename:
             error_msg = self.log_error(cmd, "No filename specified",
                                      "Command requires a filename")
             print(error_msg)
-            print("Usage: receive <filename>")
+            print("Usage: receive <filename> [sha512-hash]")
             return False
 
         is_signature = filename.endswith('.sig')
 
         print(f"Ready to receive file: {filename}")
+        if file_hash:
+            print(f"Will verify SHA-512 hash: {file_hash}")
         print("Please paste the base64-encoded file content and end with a line containing only 'EOF'")
         print("Waiting for data...")
 
@@ -538,6 +544,25 @@ class PackageRepositoryShell:
 
             # Check if the file was created successfully
             if os.path.isfile(output_path):
+                # Verify file integrity with SHA-512 hash if provided
+                if file_hash:
+                    import hashlib
+                    with open(output_path, 'rb') as f:
+                        calculated_hash = hashlib.sha512(f.read()).hexdigest()
+                    
+                    if calculated_hash == file_hash:
+                        print(f"SHA-512 hash verification: SUCCESS")
+                    else:
+                        error_msg = self.log_error(cmd, "Hash verification failed",
+                                                f"Expected: {file_hash}\nCalculated: {calculated_hash}")
+                        print(error_msg)
+                        # Delete the corrupt file
+                        try:
+                            os.unlink(output_path)
+                        except:
+                            pass
+                        return False
+                
                 if is_signature:
                     print(f"Signature file received successfully: {filename}")
                 else:
@@ -558,7 +583,7 @@ class PackageRepositoryShell:
                     print("Size: Unknown")
 
                 if not is_signature:
-                    print(f"Use 'add {output_path}' to add it to the repository")
+                    print(f"Use 'add {filename}' to add it to the repository")
 
                 self.logger.info(f"Successfully received file: {filename}")
                 return True
@@ -579,84 +604,6 @@ class PackageRepositoryShell:
                     os.unlink(b64file_path)
                 except Exception as e:
                     self.logger.warning(f"Failed to clean up temporary file {b64file_path}: {e}")
-
-    def send_file(self, filename):
-        """Send a file through SSH"""
-        cmd = f"send {filename}"
-
-        if not filename:
-            error_msg = self.log_error(cmd, "No filename specified",
-                                     "Command requires a filename")
-            print(error_msg)
-            print("Usage: send <filename>")
-            return False
-
-        # Find the file
-        file_path = None
-
-        # Check in repo
-        repo_path = os.path.join(self.repo_dir, filename)
-        if os.path.isfile(repo_path):
-            file_path = repo_path
-        # Check in uploads
-        elif os.path.isfile(os.path.join(self.upload_dir, filename)):
-            file_path = os.path.join(self.upload_dir, filename)
-        # Check if it's a full path
-        elif os.path.isfile(filename):
-            file_path = filename
-
-        if not file_path:
-            error_msg = self.log_error(cmd, f"File not found: {filename}",
-                                     f"Checked paths: {repo_path}, {os.path.join(self.upload_dir, filename)}, {filename}")
-            print(error_msg)
-            print("The file must be in the repository, uploads directory, or you must specify a full path.")
-            return False
-
-        try:
-            # Get file size
-            file_size_result = subprocess.run(
-                ["du", "-h", file_path],
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            file_size = file_size_result.stdout.split()[0]
-
-            print(f"Sending file: {os.path.basename(file_path)}")
-            print(f"Size: {file_size}")
-            print("Base64 encoded data follows (copy everything between START and END markers):")
-            print("-----START FILE DATA-----")
-
-            # Read and encode the file
-            try:
-                with open(file_path, 'rb') as f:
-                    encoded_data = base64.b64encode(f.read()).decode('utf-8')
-                    print(encoded_data)
-            except IOError as e:
-                error_msg = self.log_error(cmd, f"File I/O error",
-                                         f"Failed to read {file_path}: {e}")
-                print(error_msg)
-                return False
-
-            print("-----END FILE DATA-----")
-            print("")
-            print("To save this file on your local machine:")
-            print("1. Copy all the data between the START and END markers")
-            print("2. Run this command in your local terminal:")
-            print(f"   echo 'PASTE_DATA_HERE' | base64 -d > {os.path.basename(file_path)}")
-
-            self.logger.info(f"Successfully sent file: {filename}")
-            return True
-        except subprocess.CalledProcessError as e:
-            error_msg = self.log_error(cmd, f"Error getting file size",
-                                     f"Command du -h {file_path} failed: {e}")
-            print(error_msg)
-            return False
-        except Exception as e:
-            error_msg = self.log_error(cmd, f"Error sending file",
-                                     traceback.format_exc())
-            print(error_msg)
-            return False
 
     def log_command(self, command):
         """Log command to history file"""
@@ -682,8 +629,6 @@ class PackageRepositoryShell:
                 return self.show_status()
             elif cmd == "receive":
                 return self.receive_file(args)
-            elif cmd == "send":
-                return self.send_file(args)
             elif cmd == "errors":
                 return self.show_recent_errors()
             elif cmd == "help":
@@ -703,7 +648,7 @@ class PackageRepositoryShell:
                                      traceback.format_exc())
             print(error_msg)
             return False
-
+    
     def main_loop(self):
         """Main interactive loop"""
         self.show_welcome()

@@ -70,10 +70,15 @@ class ArchRepoClient:
         # Base64 encode the file
         with open(file_path, 'rb') as file:
             file_data = file.read()
+        
+        # Calculate SHA-512 hash
+        import hashlib
+        file_hash = hashlib.sha512(file_data).hexdigest()
+        
         encoded_data = base64.b64encode(file_data).decode('utf-8')
 
-        # Add receive command
-        commands.append(f"receive {filename}")
+        # Add receive command with hash
+        commands.append(f"receive {filename} {file_hash}")
 
         # Add the base64 data in chunks to avoid line length issues
         chunk_size = 76  # Standard base64 line length
@@ -134,6 +139,7 @@ class ArchRepoClient:
 
             # Success messages to look for
             pkg_received = "File received successfully" in stdout
+            hash_verified = "SHA-512 hash verification: SUCCESS" in stdout or "SHA-512 hash verification" not in stdout
             sig_received = True  # Assume true initially
 
             # If we sent a signature, check it was received
@@ -142,7 +148,9 @@ class ArchRepoClient:
 
             pkg_added = "Package added successfully" in stdout
 
-            if pkg_received and sig_received and pkg_added:
+            if not hash_verified:
+                return False, "Package upload failed: SHA-512 hash verification failed."
+            elif pkg_received and sig_received and pkg_added:
                 return True, "Package and signature uploaded and added to repository successfully."
             elif pkg_received and sig_received:
                 return False, "Package and signature uploaded but failed to add to repository."

@@ -13,6 +13,7 @@ import tempfile
 import traceback
 import logging
 from pathlib import Path
+import hashlib
 
 
 class PackageRepositoryShell:
@@ -556,7 +557,6 @@ class PackageRepositoryShell:
 
                 # Verify file integrity with SHA-512 hash if provided
                 if file_hash:
-                    import hashlib
                     with open(output_path, 'rb') as f:
                         calculated_hash = hashlib.sha512(f.read()).hexdigest()
 

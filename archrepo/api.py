@@ -10,6 +10,7 @@ import subprocess
 import sys
 from typing import List, Dict, Optional, Tuple, Union
 import re
+import hashlib
 
 
 class ArchRepoClient:
@@ -70,11 +71,10 @@ class ArchRepoClient:
         # Base64 encode the file
         with open(file_path, 'rb') as file:
             file_data = file.read()
-        
+
         # Calculate SHA-512 hash
-        import hashlib
         file_hash = hashlib.sha512(file_data).hexdigest()
-        
+
         encoded_data = base64.b64encode(file_data).decode('utf-8')
 
         # Add receive command with hash

@@ -47,5 +47,6 @@ rm -rf "test-pkg-build"
 
 # Show package info
 echo "Package details:"
-ls -lh "${PKG_FILENAME}"*
+ls -l "${PKG_FILENAME}"*
+sha512sum "${PKG_FILENAME}"*
 echo "Done!"

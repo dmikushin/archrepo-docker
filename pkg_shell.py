@@ -120,6 +120,20 @@ class PackageRepositoryShell:
             print(error_msg)
             return False
 
+    def _is_valid_package(self, pkg_path):
+        """Check if the package file is a valid .pkg.tar.zst file"""
+        try:
+            # Use bsdtar to validate the package format
+            result = subprocess.run(
+                ["bsdtar", "-tf", pkg_path],
+                capture_output=True,
+                text=True
+            )
+            return result.returncode == 0
+        except Exception as e:
+            self.logger.warning(f"Failed to validate package {pkg_path}: {e}")
+            return False
+
     def add_package(self, pkg_path):
         """Add a package to the repository"""
         cmd = f"add {pkg_path}"
@@ -177,6 +191,13 @@ class PackageRepositoryShell:
                     print(f"Warning: Failed to move uploaded signature file: {e}")
         else:
             pkg_file = os.path.basename(pkg_path)
+
+# Validate the package file before adding it
+        if not self._is_valid_package(repo_pkg_path):
+            error_msg = self.log_error(cmd, "Invalid package file",
+                                       f"File {repo_pkg_path} is not a valid .pkg.tar.zst package")
+            print(error_msg)
+            return False
 
         # Update the repository database
         print("Updating repository database...")

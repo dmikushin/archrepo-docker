@@ -22,16 +22,16 @@ docker build -f "${REPO_ROOT}/test/api/Dockerfile" -t archrepo-test "${REPO_ROOT
 echo -e "Running tests in container..."
 
 # Mount a volume for logs
-mkdir -p ${REPO_ROOT}/test/api/logs
-docker run --rm -v ./logs:/tmp/logs archrepo-test
+mkdir -p ${REPO_ROOT}/test/api/tmp
+docker run --rm -v ./tmp:/tmp/ archrepo-test
 
 # Display logs if they exist and are not empty
-if [ -s /tmp/logs/pkg_shell_test_errors.log ] || [ -s /tmp/logs/pkg_shell_direct_test_errors.log ]; then
+if [ -s ./tmp/logs/pkg_shell_test_errors.log ] || [ -s ./tmp/logs/pkg_shell_direct_test_errors.log ]; then
     echo -e "= Error logs from tests: ="
     echo -e "= Main test error log: ="
-    cat /tmp/logs/pkg_shell_test_errors.log
+    cat ./tmp/logs/pkg_shell_test_errors.log
     echo -e "= Direct test error log: ="
-    cat /tmp/logs/pkg_shell_direct_test_errors.log
+    cat ./tmp/logs/pkg_shell_direct_test_errors.log
 fi
 
 echo -e "Docker test run complete!"

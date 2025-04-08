@@ -32,7 +32,7 @@ if [ ! -f "$REPO_DB_PATH" ]; then
 fi
 
 # Add our local repository to the existing pacman.conf
-echo -e "\n# Add our local repository\n[repo]\nSigLevel = Optional TrustAll\nServer = file:///srv/repo/\$arch" >> /etc/pacman.conf
+echo -e "\n# Add our local repository\n[repo]\nSigLevel = Optional TrustAll\nServer = file://${REPO_DIR}" >> /etc/pacman.conf
 
 # TODO Deactivate existing repositories,
 # which we no longer need to update

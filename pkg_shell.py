@@ -180,21 +180,21 @@ class PackageRepositoryShell:
             if os.path.isfile(sig_path):
                 print("Copying signature file to repository...")
                 try:
-                    subprocess.run(["mv", sig_path, f"{self.repo_dir}/{pkg_file}.sig"], check=True)
+                    subprocess.run(["mv", sig_path, self.repo_dir], check=True)
                 except subprocess.CalledProcessError as e:
                     self.logger.warning(f"Failed to move signature file: {e}")
                     print(f"Warning: Failed to move signature file: {e}")
             elif os.path.isfile(upload_sig_path):
                 print("Copying signature file from uploads to repository...")
                 try:
-                    subprocess.run(["mv", upload_sig_path, f"{self.repo_dir}/{pkg_file}.sig"], check=True)
+                    subprocess.run(["mv", upload_sig_path, self.repo_dir], check=True)
                 except subprocess.CalledProcessError as e:
                     self.logger.warning(f"Failed to move uploaded signature file: {e}")
                     print(f"Warning: Failed to move uploaded signature file: {e}")
         else:
             pkg_file = os.path.basename(pkg_path)
 
-# Validate the package file before adding it
+        # Validate the package file before adding it
         if not self._is_valid_package(repo_pkg_path):
             error_msg = self.log_error(cmd, "Invalid package file",
                                        f"File {repo_pkg_path} is not a valid .pkg.tar.zst package")

@@ -4,8 +4,10 @@ set -e
 # Initialize directories and permissions
 mkdir -p "$UPLOAD_DIR"
 touch "$HISTORY_FILE"
+chown pkguser:pkguser $HISTORY_FILE
 touch "$ERROR_LOG_FILE"
-chown -R pkguser:pkguser /home/pkguser
+chown pkguser:pkguser $ERROR_LOG_FILE
+chown -R pkguser:pkguser $UPLOAD_DIR
 chmod 700 "$UPLOAD_DIR"
 
 # Allow pkguser to write to repository directory
@@ -52,8 +54,8 @@ if [ "${TEST_MODE}" = "1" ]; then
     mkdir fixtures
     chown pkguser:pkguser fixtures
     TEST_RESULT=0
-    #python ./test_direct_api.py --debug-on-failure || TEST_RESULT=$?
-    python ./test_direct_api.py || TEST_RESULT=$?
+    #sudo -u pkguser python ./test_direct_api.py --debug-on-failure || TEST_RESULT=$?
+    sudo -u pkguser python ./test_direct_api.py || TEST_RESULT=$?
 
     # Check for errors in log files
     if [ -s /tmp/pkg_shell_test_errors.log ] || [ -s /tmp/pkg_shell_direct_test_errors.log ]; then

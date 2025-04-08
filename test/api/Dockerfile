@@ -12,8 +12,8 @@ RUN mkdir -p /tmp/test_repo/x86_64 \
     && mkdir -p /tmp/logs \
     && touch /tmp/pkg_shell_test_errors.log \
     && touch /tmp/pkg_shell_direct_test_errors.log \
-    && chmod 666 /tmp/pkg_shell_test_errors.log \
-    && chmod 666 /tmp/pkg_shell_direct_test_errors.log
+    && chown pkguser:pkguser /tmp/pkg_shell_test_errors.log \
+    && chown pkguser:pkguser /tmp/pkg_shell_direct_test_errors.log
 
 # Set environment variables for testing
 ENV TEST_MODE=1

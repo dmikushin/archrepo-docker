@@ -168,7 +168,7 @@ class TestDirectArchRepoAPI(unittest.TestCase):
             print("Running generate_dummy_package.sh...")
             generator_script = Path(__file__).parent / 'generate_dummy_package.sh'
             if generator_script.exists():
-                subprocess.run(['sudo', '-u', 'pkguser', str(generator_script)], check=True)
+                subprocess.run([str(generator_script)], check=True)
             else:
                 raise FileNotFoundError(f"Could not find {generator_script}")
 

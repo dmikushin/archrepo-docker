@@ -11,6 +11,11 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
+# First, make sure the fresh base image is built
+pushd ${REPO_ROOT}
+docker build -t archrepo .
+popd
+
 echo -e "Building Docker image..."
 docker build -f "${REPO_ROOT}/test/api/Dockerfile" -t archrepo-test "${REPO_ROOT}"
 

@@ -129,6 +129,8 @@ class PackageRepositoryShell:
                 capture_output=True,
                 text=True
             )
+            if result.returncode != 0:
+                self.logger.warning(f"Package validation failed for {pkg_path}: {result.stderr.strip()}")
             return result.returncode == 0
         except Exception as e:
             self.logger.warning(f"Failed to validate package {pkg_path}: {e}")

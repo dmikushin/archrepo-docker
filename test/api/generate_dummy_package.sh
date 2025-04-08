@@ -35,6 +35,12 @@ makepkg -f
 cp *.pkg.tar.zst ../ || echo "Error: Failed to find built package"
 cd ..
 
+# Validate the package file
+if ! bsdtar -tf "${PKG_FILENAME}" > /dev/null 2>&1; then
+    echo "Error: The created package is not a valid .pkg.tar.zst file."
+    exit 1
+fi
+
 # Create a dummy signature file (since quasipkg doesn't handle signatures)
 echo "Creating dummy signature file..."
 echo "THIS IS A DUMMY SIGNATURE FOR TESTING PURPOSES ONLY" > "${PKG_FILENAME}.sig"
